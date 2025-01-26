@@ -18,10 +18,20 @@ repositories {
 }
 
 dependencies {
+	// Spring Web Starter
 	implementation("org.springframework.boot:spring-boot-starter-web")
+	
+	// Spring Data JPA
+	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+	
+	// SQL Server JDBC Driver
+	implementation("com.microsoft.sqlserver:mssql-jdbc:12.2.0.jre8")
+
+	// Testing Dependencies
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
+
 
 tasks.withType<Test> {
 	useJUnitPlatform()
