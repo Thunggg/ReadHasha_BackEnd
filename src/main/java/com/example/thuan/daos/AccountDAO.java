@@ -15,12 +15,12 @@ public interface AccountDAO {
 
     List<AccountDTO> findAll();
 
+    public AccountDTO registerAccount(String account);
+
     // public AccountDTO findDetailByUsernameAndStaff(String username, StaffDTO
     // staff);
 
     // public void addAccount(String account);
-
-    // public void registerAccount(String account);
 
     // boolean verifyEmail(String otpCodeRequest);
 

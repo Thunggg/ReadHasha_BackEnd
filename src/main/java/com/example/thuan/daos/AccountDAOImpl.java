@@ -113,4 +113,35 @@ public class AccountDAOImpl implements AccountDAO {
                 AccountDTO.class);
         return query.getResultList();
     }
+
+    @Override
+    @Transactional
+    public AccountDTO registerAccount(String account) {
+        try {
+            ObjectMapper obj = new ObjectMapper();
+            AccountDTO accountDTO = obj.readValue(account, AccountDTO.class);
+            accountDTO.setAccStatus(UNVERIFIED_STATUS);
+            accountDTO.setRole(1);
+            accountDTO.setPassword(password.encode(accountDTO.getPassword()));
+
+            // Kiểm tra xem username hoặc email đã tồn tại
+            String checkQuery = "SELECT COUNT(*) FROM Account a WHERE a.username = 'thuannguyen2004' OR a.email = 'thuannguyen20041028@gmail.com';";
+            Long count = entityManager.createQuery(checkQuery, Long.class)
+                    .setParameter("username", accountDTO.getUsername())
+                    .setParameter("email", accountDTO.getEmail())
+                    .getSingleResult();
+
+            if (count > 0) {
+                throw new IllegalArgumentException("Username or Email already exists!");
+            }
+
+            entityManager.persist(accountDTO);
+            return accountDTO;
+        } catch (IllegalArgumentException e) {
+            throw e; // Ném lỗi để Controller bắt được (tránh lỗi 500)
+        } catch (Exception e) {
+            throw new RuntimeException("Đăng ký thất bại: " + e.getMessage());
+        }
+    }
+
 }
