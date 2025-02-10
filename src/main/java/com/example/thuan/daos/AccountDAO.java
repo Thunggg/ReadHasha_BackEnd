@@ -28,6 +28,10 @@ public interface AccountDAO {
 
     boolean verifyEmail(String token, String otpCodeRequest);
 
+    public boolean resendOTP(String email);
+
+    public AccountDTO findByEmail(String email);
+
     // boolean verifyAccount(String otpCodeRequest);
 
     // boolean changePassword(String passwordRequest);

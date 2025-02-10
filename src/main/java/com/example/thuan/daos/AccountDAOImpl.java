@@ -185,4 +185,44 @@ public class AccountDAOImpl implements AccountDAO {
         }
         return false;
     }
+
+    @Override
+    public AccountDTO findByEmail(String email) {
+        TypedQuery<AccountDTO> query = entityManager.createQuery(
+                "SELECT a FROM AccountDTO a WHERE a.email = :email", AccountDTO.class);
+        query.setParameter("email", email);
+        AccountDTO account = query.getSingleResult();
+        return account;
+    }
+
+    @Transactional
+    @Override
+    public boolean resendOTP(String email) {
+        try {
+            // Tìm tài khoản theo email
+            AccountDTO account = this.findByEmail(email);
+
+            if (account == null) {
+                throw new IllegalArgumentException("Tài khoản không tồn tại.");
+            }
+
+            if (account.getAccStatus() != INACTIVE_STATUS) {
+                return false;
+            }
+
+            // Tạo OTP mới
+            String newOtp = randomNumberGenerator.generateNumber();
+            account.setCode(newOtp);
+            entityManager.merge(account);
+
+            // Gửi OTP qua email
+            sender.sendEmail(account.getEmail(), newOtp);
+
+            return true;
+        } catch (Exception e) {
+            System.out.println("Error in resend OTP: " + e.getMessage());
+            return false;
+        }
+    }
+
 }

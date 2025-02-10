@@ -108,4 +108,29 @@ public class AccountController {
         }
     }
 
+    @PostMapping("/email/resend-otp")
+    public ResponseEntity<BaseResponse<String>> resendOTP(
+            @RequestHeader("Authorization") String token) {
+        try {
+            // Giải mã JWT để lấy email
+            String email = jwtUtil.validateToken(token);
+
+            // Gọi phương thức resendOTP từ DAO
+            boolean success = accountDAO.resendOTP(email);
+
+            if (success) {
+                return ResponseEntity.ok()
+                        .body(BaseResponse.success("Mã OTP đã được gửi lại đến email của bạn.", 200, null, null, null));
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(BaseResponse.error("Không thể gửi lại OTP. Tài khoản đã được xác thực.", 400,
+                                "Invalid Account"));
+            }
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(BaseResponse.error("Gửi lại OTP thất bại", 500, e.getMessage()));
+        }
+    }
+
 }
