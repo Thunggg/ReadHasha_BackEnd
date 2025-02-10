@@ -176,6 +176,7 @@ public class AccountDAOImpl implements AccountDAO {
 
             if (account != null && account.getCode().equals(otp)) {
                 account.setAccStatus(ACTIVE_STATUS);
+                account.setCode(null);
                 entityManager.merge(account);
                 return true;
             }
