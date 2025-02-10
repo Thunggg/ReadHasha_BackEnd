@@ -18,8 +18,11 @@ repositories {
 }
 
 dependencies {
-    // Spring Web Starter
+    // Spring Boot Web
     implementation("org.springframework.boot:spring-boot-starter-web")
+
+    // Spring Boot Security
+    implementation("org.springframework.boot:spring-boot-starter-security")
 
     // Spring Data JPA
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -27,28 +30,30 @@ dependencies {
     // SQL Server JDBC Driver
     implementation("com.microsoft.sqlserver:mssql-jdbc:12.2.0.jre8")
 
-    // Jackson (cho việc xử lý JSON)
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.13.3")
-
     // BCrypt Password Encoder
     implementation("org.springframework.security:spring-security-crypto")
 
-    // Lombok (giảm thiểu mã nguồn)
+    // Lombok
     compileOnly("org.projectlombok:lombok:1.18.24")
     annotationProcessor("org.projectlombok:lombok:1.18.24")
 
-    // Testing Dependencies
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    // JWT - Sử dụng phiên bản hỗ trợ Jakarta EE
+    implementation("io.jsonwebtoken:jjwt-api:0.11.5")
+    implementation("io.jsonwebtoken:jjwt-impl:0.11.5")
+    implementation("io.jsonwebtoken:jjwt-jackson:0.11.5") // Dùng Jackson để parse JSON
 
-    implementation("org.springframework.boot:spring-boot-starter-security")
-
+    // Jackson
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.0")
     implementation("com.fasterxml.jackson.core:jackson-annotations:2.15.0")
 
+    // Mail Service (gửi email OTP)
+    implementation("org.springframework.boot:spring-boot-starter-mail")
+    implementation("com.sun.mail:jakarta.mail:2.0.1") // Nếu dùng Spring Boot 3.x
+
+    // Testing
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
-
-
 
 tasks.withType<Test> {
 	useJUnitPlatform()

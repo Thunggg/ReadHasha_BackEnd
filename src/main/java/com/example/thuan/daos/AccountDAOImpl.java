@@ -11,11 +11,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.thuan.models.AccountDTO;
 import com.example.thuan.models.StaffDTO;
+import com.example.thuan.ultis.EmailSenderUtil;
+import com.example.thuan.ultis.JwtUtil;
+import com.example.thuan.ultis.RandomNumberGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Repository
 public class AccountDAOImpl implements AccountDAO {
@@ -29,13 +33,16 @@ public class AccountDAOImpl implements AccountDAO {
     EntityManager entityManager;
     PasswordEncoder password = new BCryptPasswordEncoder(10);
 
-    // @Autowired
-    // EmailSenderUtil sender;
+    @Autowired
+    EmailSenderUtil sender;
 
     @Autowired
     public AccountDAOImpl(EntityManager entityManager) {
         this.entityManager = entityManager;
     }
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     // implements method
     @Override
@@ -114,18 +121,21 @@ public class AccountDAOImpl implements AccountDAO {
         return query.getResultList();
     }
 
+    @Autowired
+    private RandomNumberGenerator randomNumberGenerator;
+
     @Override
     @Transactional
-    public AccountDTO registerAccount(String account) {
+    public AccountDTO registerAccount(String account, HttpServletResponse response) {
         try {
             ObjectMapper obj = new ObjectMapper();
             AccountDTO accountDTO = obj.readValue(account, AccountDTO.class);
-            accountDTO.setAccStatus(UNVERIFIED_STATUS);
+            accountDTO.setAccStatus(INACTIVE_STATUS);
             accountDTO.setRole(1);
             accountDTO.setPassword(password.encode(accountDTO.getPassword()));
 
             // Kiểm tra xem username hoặc email đã tồn tại
-            String checkQuery = "SELECT COUNT(*) FROM Account a WHERE a.username = 'thuannguyen2004' OR a.email = 'thuannguyen20041028@gmail.com';";
+            String checkQuery = "SELECT COUNT(*) FROM AccountDTO a WHERE a.username = :username OR a.email = :email";
             Long count = entityManager.createQuery(checkQuery, Long.class)
                     .setParameter("username", accountDTO.getUsername())
                     .setParameter("email", accountDTO.getEmail())
@@ -135,7 +145,14 @@ public class AccountDAOImpl implements AccountDAO {
                 throw new IllegalArgumentException("Username or Email already exists!");
             }
 
+            // Tạo và lưu OTP vào DB
+            String otp = randomNumberGenerator.generateNumber();
+            accountDTO.setCode(otp);
             entityManager.persist(accountDTO);
+
+            // Gửi email xác thực
+            sender.sendEmail(accountDTO.getEmail(), otp);
+
             return accountDTO;
         } catch (IllegalArgumentException e) {
             throw e; // Ném lỗi để Controller bắt được (tránh lỗi 500)
@@ -144,4 +161,27 @@ public class AccountDAOImpl implements AccountDAO {
         }
     }
 
+    @Transactional
+    @Override
+    public boolean verifyEmail(String token, String otp) { // Nhận OTP từ request
+        try {
+            // Giải mã JWT để lấy email
+            String email = jwtUtil.validateToken(token);
+
+            // Kiểm tra OTP trong DB
+            TypedQuery<AccountDTO> query = entityManager.createQuery(
+                    "SELECT a FROM AccountDTO a WHERE a.email = :email", AccountDTO.class);
+            query.setParameter("email", email);
+            AccountDTO account = query.getSingleResult();
+
+            if (account != null && account.getCode().equals(otp)) {
+                account.setAccStatus(ACTIVE_STATUS);
+                entityManager.merge(account);
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("Email verification failed: " + e.getMessage());
+        }
+        return false;
+    }
 }

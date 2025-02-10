@@ -2,6 +2,7 @@ package com.example.thuan.controllers;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,6 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.thuan.daos.AccountDAO;
 import com.example.thuan.models.AccountDTO;
 import com.example.thuan.respone.BaseResponse;
+import com.example.thuan.ultis.JwtUtil;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 // @Slf4j // cho phép sử dụng log.infor
 @RestController
@@ -47,6 +53,9 @@ public class AccountController {
         this.accountDAO = accountDAO;
     }
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     // @PreAuthorize("hasAuthority('SCOPE_ADMIN')")
     @GetMapping("/")
     public List<AccountDTO> getAccounts() {
@@ -60,14 +69,42 @@ public class AccountController {
     }
 
     @PostMapping(value = "/register")
-    public ResponseEntity<BaseResponse<AccountDTO>> registeredAccount(@RequestPart("register") String account) {
+    public ResponseEntity<BaseResponse<AccountDTO>> registeredAccount(
+            @RequestPart("register") String account, HttpServletResponse response) {
         try {
-            AccountDTO createdAccount = accountDAO.registerAccount(account);
+            AccountDTO createdAccount = accountDAO.registerAccount(account, response);
+            String accessToken = jwtUtil.generateToken(createdAccount.getEmail());
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(BaseResponse.success("Đăng ký thành công", 201, createdAccount));
+                    .body(BaseResponse.success("Đăng ký thành công", 201, createdAccount, accessToken, null));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(BaseResponse.error("Lỗi đăng ký: " + e.getMessage(), 400, e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(BaseResponse.error("Đăng ký thất bại", 500, e.getMessage()));
+        }
+    }
+
+    @PostMapping("/email/verify")
+    public ResponseEntity<BaseResponse<String>> verifyEmail(
+            @RequestHeader("Authorization") String token, // JWT từ header
+            @RequestBody Map<String, String> requestBody // OTP từ body
+    ) {
+        String otp = requestBody.get("otp");
+
+        if (otp == null || otp.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(BaseResponse.error("OTP không được để trống!", 400, "Invalid Request"));
+        }
+
+        boolean success = accountDAO.verifyEmail(token, otp);
+        if (success) {
+            return ResponseEntity.ok()
+                    .body(BaseResponse.success("Xác thực email thành công!", 200, null, null, null));
+        } else {
+            return ResponseEntity.badRequest()
+                    .body(BaseResponse.error("Xác thực thất bại! OTP hoặc Token không hợp lệ.", 400,
+                            "Invalid OTP or Token"));
         }
     }
 
