@@ -20,7 +20,9 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.thuan.daos.AccountDAO;
+import com.example.thuan.exceptions.AuthenticationException;
 import com.example.thuan.models.AccountDTO;
+import com.example.thuan.respone.AuthenticationResponse;
 import com.example.thuan.respone.BaseResponse;
 import com.example.thuan.ultis.JwtUtil;
 
@@ -130,6 +132,45 @@ public class AccountController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(BaseResponse.error("Gửi lại OTP thất bại", 500, e.getMessage()));
+        }
+    }
+
+    // ------------------- ĐĂNG NHẬP -------------------
+    // Endpoint đăng nhập: xử lý toàn bộ logic ở DAO
+    @PostMapping("/auth/login")
+    public ResponseEntity<BaseResponse<?>> login(@RequestBody Map<String, String> loginRequest) {
+        String username = loginRequest.get("username");
+        String password = loginRequest.get("password");
+
+        try {
+            AuthenticationResponse loginResponse = accountDAO.login(username, password);
+            return ResponseEntity.ok(BaseResponse.success(
+                    "Đăng nhập thành công",
+                    200,
+                    loginResponse.getAccount(),
+                    loginResponse.getAccessToken(),
+                    loginResponse.getRefreshToken()));
+        } catch (AuthenticationException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(BaseResponse.error(e.getMessage(), 401, "Invalid credentials"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(BaseResponse.error("Lỗi hệ thống", 500, e.getMessage()));
+        }
+    }
+
+    // ------------------- REFRESH TOKEN -------------------
+    // Endpoint làm mới access token: nhận refresh token và trả về access token mới
+    @PostMapping("/refresh")
+    public ResponseEntity<BaseResponse<?>> refreshToken(@RequestBody Map<String, String> tokenRequest) {
+        String refreshToken = tokenRequest.get("refreshToken");
+        try {
+            AuthenticationResponse loginResponse = accountDAO.refreshToken(refreshToken);
+            return ResponseEntity.ok(BaseResponse.success("Token refreshed successfully", 200,
+                    loginResponse.getAccount(), loginResponse.getAccessToken(), loginResponse.getRefreshToken()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(BaseResponse.error(e.getMessage(), 401, "Invalid refresh token"));
         }
     }
 

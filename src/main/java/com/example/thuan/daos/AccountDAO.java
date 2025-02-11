@@ -3,6 +3,7 @@ package com.example.thuan.daos;
 import java.util.List;
 
 import com.example.thuan.models.AccountDTO;
+import com.example.thuan.respone.AuthenticationResponse;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -32,6 +33,9 @@ public interface AccountDAO {
 
     public AccountDTO findByEmail(String email);
 
+    public AuthenticationResponse login(String username, String rawPassword);
+
+    public AuthenticationResponse refreshToken(String refreshToken);
     // boolean verifyAccount(String otpCodeRequest);
 
     // boolean changePassword(String passwordRequest);

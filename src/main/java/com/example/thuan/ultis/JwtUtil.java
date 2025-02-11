@@ -10,6 +10,8 @@ import java.util.Date;
 public class JwtUtil {
     private static final String SECRET_KEY = "01234567890123456789012345678901"; // 32-byte key
     private static final long EXPIRATION_TIME = 10 * 60 * 1000; // 10 phút
+    private static final long ACCESS_TOKEN_EXPIRATION = 15 * 60 * 1000; // 15 phút
+    private static final long REFRESH_TOKEN_EXPIRATION = 7 * 24 * 60 * 60 * 1000; // 7 ngày
 
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
@@ -20,6 +22,26 @@ public class JwtUtil {
                 .setSubject(email) // Chỉ lưu email
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    // Tạo Access Token với username làm subject
+    public String generateAccessToken(String username) {
+        return Jwts.builder()
+                .setSubject(username) // lưu username vào subject
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRATION))
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    // Tạo Refresh Token với username làm subject
+    public String generateRefreshToken(String username) {
+        return Jwts.builder()
+                .setSubject(username) // lưu username vào subject
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRATION))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }

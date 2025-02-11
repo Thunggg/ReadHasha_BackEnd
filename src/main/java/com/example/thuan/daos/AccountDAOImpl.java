@@ -9,8 +9,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.thuan.exceptions.AuthenticationException;
 import com.example.thuan.models.AccountDTO;
 import com.example.thuan.models.StaffDTO;
+import com.example.thuan.respone.AuthenticationResponse;
 import com.example.thuan.ultis.EmailSenderUtil;
 import com.example.thuan.ultis.JwtUtil;
 import com.example.thuan.ultis.RandomNumberGenerator;
@@ -225,4 +227,45 @@ public class AccountDAOImpl implements AccountDAO {
         }
     }
 
+    // Phương thức login: kiểm tra username, so sánh password và tạo token.
+    @Override
+    @Transactional(readOnly = true)
+    public AuthenticationResponse login(String username, String password) {
+        // Tìm tài khoản theo username
+        AccountDTO account = this.findByUsername(username);
+        if (account == null || !this.password.matches(password, account.getPassword())) {
+            throw new AuthenticationException("Sai tài khoản hoặc mật khẩu");
+        }
+
+        // Nếu xác thực thành công, tạo Access Token và Refresh Token dựa trên username
+        String accessToken = jwtUtil.generateAccessToken(username);
+        String refreshToken = jwtUtil.generateRefreshToken(username);
+        return new AuthenticationResponse(account, accessToken, refreshToken);
+    }
+
+    // ------------------- XỬ LÝ REFRESH TOKEN -------------------
+    // Phương thức refreshToken: nhận refresh token, xác thực và tạo access token
+    // mới.
+    @Override
+    @Transactional(readOnly = true)
+    public AuthenticationResponse refreshToken(String refreshToken) {
+        // Validate refresh token để lấy username
+        String username;
+        try {
+            username = jwtUtil.validateToken(refreshToken);
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid refresh token: " + e.getMessage());
+        }
+
+        // Kiểm tra tài khoản có tồn tại không
+        AccountDTO account = this.findByUsername(username);
+        if (account == null) {
+            throw new RuntimeException("Account not found for refresh token");
+        }
+        // Tạo access token mới dựa trên username
+        String newAccessToken = jwtUtil.generateAccessToken(username);
+        // Có thể sử dụng lại refreshToken cũ hoặc tạo mới (ở đây ta dùng lại
+        // refreshToken)
+        return new AuthenticationResponse(account, newAccessToken, refreshToken);
+    }
 }

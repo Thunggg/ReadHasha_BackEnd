@@ -36,23 +36,29 @@ dependencies {
     // Lombok
     compileOnly("org.projectlombok:lombok:1.18.24")
     annotationProcessor("org.projectlombok:lombok:1.18.24")
+    testCompileOnly("org.projectlombok:lombok:1.18.24") // Thêm dòng này
+    testAnnotationProcessor("org.projectlombok:lombok:1.18.24") // Thêm dòng này
 
-    // JWT - Sử dụng phiên bản hỗ trợ Jakarta EE
+    // JWT
     implementation("io.jsonwebtoken:jjwt-api:0.11.5")
     implementation("io.jsonwebtoken:jjwt-impl:0.11.5")
-    implementation("io.jsonwebtoken:jjwt-jackson:0.11.5") // Dùng Jackson để parse JSON
+    implementation("io.jsonwebtoken:jjwt-jackson:0.11.5")
 
     // Jackson
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.0")
     implementation("com.fasterxml.jackson.core:jackson-annotations:2.15.0")
 
-    // Mail Service (gửi email OTP)
+    // Mail Service
     implementation("org.springframework.boot:spring-boot-starter-mail")
-    implementation("com.sun.mail:jakarta.mail:2.0.1") // Nếu dùng Spring Boot 3.x
+    implementation("com.sun.mail:jakarta.mail:2.0.1")
+
+    // Validation (Thêm nếu cần)
+    implementation("org.springframework.boot:spring-boot-starter-validation")
 
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("org.mockito:mockito-core:5.3.1") // Thêm nếu cần
 }
 
 tasks.withType<Test> {
