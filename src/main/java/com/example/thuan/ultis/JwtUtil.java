@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Lazy;
 import com.nimbusds.jwt.SignedJWT;
 import com.example.thuan.daos.AccountDAO;
 import com.example.thuan.daos.InvalidatedTokenDAO;
+import com.example.thuan.exceptions.AppException;
 import com.example.thuan.models.AccountDTO;
 import com.example.thuan.models.InvalidatedTokenDTO;
 import com.example.thuan.request.IntrospectRequest;
@@ -23,6 +24,7 @@ import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import java.util.UUID;
 import java.security.Key;
+import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -135,24 +137,32 @@ public class JwtUtil {
     }
 
     // veriry token
-    public SignedJWT verifyToken(String token, boolean isRefresh) throws Exception {
-        JWSVerifier verifier = new MACVerifier(SECRET_KEY.getBytes());
+    public SignedJWT verifyToken(String token, boolean isRefresh) {
+        try {
+            JWSVerifier verifier = new MACVerifier(SECRET_KEY.getBytes());
 
-        SignedJWT signedJWT = SignedJWT.parse(token);
+            SignedJWT signedJWT = SignedJWT.parse(token);
 
-        Date expiryTime = (isRefresh)
-                ? new Date(signedJWT.getJWTClaimsSet().getIssueTime()
-                        .toInstant().plus(ACCESS_TOKEN_EXPIRATION, ChronoUnit.DAYS).toEpochMilli())
-                : signedJWT.getJWTClaimsSet().getExpirationTime();
+            Date expiryTime = (isRefresh)
+                    ? new Date(signedJWT.getJWTClaimsSet().getIssueTime()
+                            .toInstant().plus(ACCESS_TOKEN_EXPIRATION, ChronoUnit.DAYS).toEpochMilli())
+                    : signedJWT.getJWTClaimsSet().getExpirationTime();
 
-        var verified = signedJWT.verify(verifier);
-        if (!(verified && expiryTime.after(new Date())))
-            throw new Exception("Unauthenticated");
+            boolean verified = signedJWT.verify(verifier);
+            if (!(verified && expiryTime.after(new Date()))) {
+                throw new AppException(ErrorCode.INVALID_TOKEN);
+            }
 
-        if (invalidatedTokenDAO.existsById(signedJWT.getJWTClaimsSet().getJWTID()))
-            throw new Exception("Unauthenticated");
+            if (invalidatedTokenDAO.existsById(signedJWT.getJWTClaimsSet().getJWTID())) {
+                throw new AppException(ErrorCode.TOKEN_REVOKED);
+            }
 
-        return signedJWT;
+            return signedJWT;
+        } catch (ParseException e) {
+            throw new AppException(ErrorCode.INVALID_TOKEN);
+        } catch (JOSEException e) {
+            throw new AppException(ErrorCode.INVALID_TOKEN);
+        }
     }
 
     // check valid token
@@ -194,30 +204,36 @@ public class JwtUtil {
     public AuthenticationResponse refreshToken(RefreshToken request) throws Exception {
         // Kiểm tra token có bị thu hồi không
         if (invalidatedTokenDAO.existsById(request.getToken())) {
-            throw new Exception("Refresh token is revoked!");
+            throw new AppException(ErrorCode.TOKEN_REVOKED);
         }
 
-        var signJWT = verifyToken(request.getToken(), true);
-        var jit = signJWT.getJWTClaimsSet().getJWTID();
-        var username = signJWT.getJWTClaimsSet().getSubject();
+        try {
 
-        var account = accountDAO.findByUsername(username);
-        if (account == null) {
-            throw new Exception("User not found!");
+            var signJWT = verifyToken(request.getToken(), true);
+            var jit = signJWT.getJWTClaimsSet().getJWTID();
+            var username = signJWT.getJWTClaimsSet().getSubject();
+
+            var account = accountDAO.findByUsername(username);
+            if (account == null) {
+                throw new Exception("User not found!");
+            }
+
+            // Xóa refreshToken cũ trước khi cấp token mới
+            invalidatedTokenDAO.deleteByITID(jit);
+
+            // Cấp token mới
+            String newAccessToken = generateAccessToken(account);
+            String newRefreshToken = generateRefreshToken(account);
+
+            return AuthenticationResponse.builder()
+                    .accessToken(newAccessToken)
+                    .refreshToken(newRefreshToken)
+                    .authenticate(true)
+                    .build();
+        } catch (ExpiredJwtException e) {
+            throw new AppException(ErrorCode.TOKEN_EXPIRED);
+        } catch (JwtException e) {
+            throw new AppException(ErrorCode.INVALID_TOKEN);
         }
-
-        // Xóa refreshToken cũ trước khi cấp token mới
-        invalidatedTokenDAO.deleteByITID(jit);
-
-        // Cấp token mới
-        String newAccessToken = generateAccessToken(account);
-        String newRefreshToken = generateRefreshToken(account);
-
-        return AuthenticationResponse.builder()
-                .accessToken(newAccessToken)
-                .refreshToken(newRefreshToken)
-                .authenticate(true)
-                .build();
     }
-
 }
