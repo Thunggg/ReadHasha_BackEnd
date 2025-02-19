@@ -46,37 +46,31 @@ public class AuthenticationDAO {
 
     // authenticate
     public BaseResponse<AuthenticationResponse> authenticate(AuthenticationRequest request) {
-        try {
-            AccountDTO account = accountDAO.findByUsername(request.getUsername());
+        AccountDTO account = accountDAO.findByUsername(request.getUsername());
 
-            if (account == null) {
-                return BaseResponse.error("Tài khoản không tồn tại!", 401, null);
-            }
-
-            if (account.getAccStatus() == Status.INACTIVE_STATUS.getValue()) {
-                return BaseResponse.error("Tài khoản đã bị khóa!", 401, null);
-            }
-
-            PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
-            if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
-                return BaseResponse.error("Sai tài khoản hoặc mật khẩu", 401, null);
-            }
-
-            String access_token = JwtUtil.generateAccessToken(account);
-            String refresh_token = JwtUtil.generateRefreshToken(account);
-
-            AuthenticationResponse authResponse = AuthenticationResponse.builder()
-                    .accessToken(access_token)
-                    .refreshToken(refresh_token)
-                    .account(account)
-                    .authenticate(true)
-                    .build();
-
-            return BaseResponse.success("Đăng nhập thành công", 200, authResponse, null, null);
-
-        } catch (Exception e) {
-            return BaseResponse.error("Lỗi hệ thống, vui lòng thử lại sau", 500, e.getMessage());
+        if (account == null) {
+            throw new AuthenticationException("Tài khoản không tồn tại!");
         }
-    }
 
+        if (account.getAccStatus() == Status.INACTIVE_STATUS.getValue()) {
+            throw new AuthenticationException("Tài khoản đã bị khóa!");
+        }
+
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+        if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
+            throw new AuthenticationException("Sai tài khoản hoặc mật khẩu");
+        }
+
+        String access_token = JwtUtil.generateAccessToken(account);
+        String refresh_token = JwtUtil.generateRefreshToken(account);
+
+        AuthenticationResponse authResponse = AuthenticationResponse.builder()
+                .accessToken(access_token)
+                .refreshToken(refresh_token)
+                .account(account)
+                .authenticate(true)
+                .build();
+
+        return BaseResponse.success("Đăng nhập thành công", 200, authResponse, null, null);
+    }
 }

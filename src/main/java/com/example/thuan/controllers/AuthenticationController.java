@@ -39,15 +39,10 @@ public class AuthenticationController {
             ObjectMapper objectMapper = new ObjectMapper();
             AuthenticationRequest request = objectMapper.readValue(login, AuthenticationRequest.class);
             BaseResponse<AuthenticationResponse> response = authenticationDAO.authenticate(request);
-
-            // Trả về status code dựa trên response từ DAO
             return ResponseEntity.status(response.getStatusCode()).body(response);
         } catch (JsonProcessingException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     BaseResponse.error("Dữ liệu không hợp lệ", 400, null));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                    BaseResponse.error("Lỗi hệ thống, vui lòng thử lại sau", 500, null));
         }
     }
 
