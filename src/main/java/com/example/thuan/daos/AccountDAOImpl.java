@@ -1,5 +1,6 @@
 package com.example.thuan.daos;
 
+import com.example.thuan.ultis.Status;
 import java.sql.Date;
 import java.util.List;
 
@@ -26,25 +27,17 @@ import jakarta.servlet.http.HttpServletResponse;
 @Repository
 public class AccountDAOImpl implements AccountDAO {
 
-    final int ACTIVE_STATUS = 1;
-    final int INACTIVE_STATUS = 0;
-    final int UNVERIFIED_STATUS = 2;
-    final int UNVERIFIED_ADMIN_CREATED_STATUS = 4;
-    final String DEFAULT_PASSWORD = "12345";
-    // define entity manager
+    @Autowired
     EntityManager entityManager;
+
+    @Autowired
     PasswordEncoder password = new BCryptPasswordEncoder(10);
 
     @Autowired
     EmailSenderUtil sender;
 
     @Autowired
-    public AccountDAOImpl(EntityManager entityManager) {
-        this.entityManager = entityManager;
-    }
-
-    @Autowired
-    private JwtUtil jwtUtil;
+    JwtUtil jwtUtil;
 
     // implements method
     @Override
@@ -106,7 +99,7 @@ public class AccountDAOImpl implements AccountDAO {
                 TypedQuery<StaffDTO> query = entityManager.createQuery(
                         "SELECT s FROM StaffDTO s WHERE s.username.username = :username", StaffDTO.class);
                 query.setParameter("username", username);
-                StaffDTO staff = query.getSingleResult();
+                // StaffDTO staff = query.getSingleResult();
                 account.setAccStatus(0);
                 entityManager.merge(account);
             } catch (Exception e) {
@@ -132,7 +125,7 @@ public class AccountDAOImpl implements AccountDAO {
         try {
             ObjectMapper obj = new ObjectMapper();
             AccountDTO accountDTO = obj.readValue(account, AccountDTO.class);
-            accountDTO.setAccStatus(INACTIVE_STATUS);
+            accountDTO.setAccStatus(Status.INACTIVE_STATUS.getValue());
             accountDTO.setRole(1);
             accountDTO.setPassword(password.encode(accountDTO.getPassword()));
 
@@ -177,7 +170,7 @@ public class AccountDAOImpl implements AccountDAO {
             AccountDTO account = query.getSingleResult();
 
             if (account != null && account.getCode().equals(otp)) {
-                account.setAccStatus(ACTIVE_STATUS);
+                account.setAccStatus(Status.ACTIVE_STATUS.getValue());
                 account.setCode(null);
                 entityManager.merge(account);
                 return true;
@@ -208,7 +201,7 @@ public class AccountDAOImpl implements AccountDAO {
                 throw new IllegalArgumentException("Tài khoản không tồn tại.");
             }
 
-            if (account.getAccStatus() != INACTIVE_STATUS) {
+            if (account.getAccStatus() != Status.INACTIVE_STATUS.getValue()) {
                 return false;
             }
 
@@ -228,44 +221,61 @@ public class AccountDAOImpl implements AccountDAO {
     }
 
     // Phương thức login: kiểm tra username, so sánh password và tạo token.
-    @Override
-    @Transactional(readOnly = true)
-    public AuthenticationResponse login(String username, String password) {
-        // Tìm tài khoản theo username
-        AccountDTO account = this.findByUsername(username);
-        if (account == null || !this.password.matches(password, account.getPassword())) {
-            throw new AuthenticationException("Sai tài khoản hoặc mật khẩu");
-        }
+    // @Override
+    // @Transactional(readOnly = true)
+    // public AuthenticationResponse login(String username, String password) {
+    // // Tìm tài khoản theo username
+    // AccountDTO account = this.findByUsername(username);
 
-        // Nếu xác thực thành công, tạo Access Token và Refresh Token dựa trên username
-        String accessToken = jwtUtil.generateAccessToken(username);
-        String refreshToken = jwtUtil.generateRefreshToken(username);
-        return new AuthenticationResponse(account, accessToken, refreshToken);
-    }
+    // // Trường hợp tài khoản không tồn tại
+    // if (account == null) {
+    // throw new AuthenticationException("Tài khoản không tồn tại!");
+    // }
 
-    // ------------------- XỬ LÝ REFRESH TOKEN -------------------
-    // Phương thức refreshToken: nhận refresh token, xác thực và tạo access token
-    // mới.
-    @Override
-    @Transactional(readOnly = true)
-    public AuthenticationResponse refreshToken(String refreshToken) {
-        // Validate refresh token để lấy username
-        String username;
-        try {
-            username = jwtUtil.validateToken(refreshToken);
-        } catch (Exception e) {
-            throw new RuntimeException("Invalid refresh token: " + e.getMessage());
-        }
+    // // Trường hợp tài khoản đã bị khóa
+    // if (account.getAccStatus() == Status.INACTIVE_STATUS.getValue()) {
+    // throw new AuthenticationException("Tài khoản đã bị khóa!");
+    // }
 
-        // Kiểm tra tài khoản có tồn tại không
-        AccountDTO account = this.findByUsername(username);
-        if (account == null) {
-            throw new RuntimeException("Account not found for refresh token");
-        }
-        // Tạo access token mới dựa trên username
-        String newAccessToken = jwtUtil.generateAccessToken(username);
-        // Có thể sử dụng lại refreshToken cũ hoặc tạo mới (ở đây ta dùng lại
-        // refreshToken)
-        return new AuthenticationResponse(account, newAccessToken, refreshToken);
-    }
+    // // Trường hợp tài khoản hoặc mật khẩu không đúng
+    // PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+    // boolean authenticated = passwordEncoder.matches(password,
+    // account.getPassword());
+    // if (!authenticated) {
+    // throw new AuthenticationException("Sai tài khoản hoặc mật khẩu");
+    // }
+
+    // // Nếu xác thực thành công, tạo Access Token và Refresh Token dựa trên
+    // username
+    // String accessToken = jwtUtil.generateAccessToken(account);
+    // String refreshToken = jwtUtil.generateRefreshToken(account);
+    // return new AuthenticationResponse(account, accessToken, refreshToken, true,
+    // "Đăng nhập thành công!");
+    // }
+
+    // // ------------------- XỬ LÝ REFRESH TOKEN -------------------
+    // // Phương thức refreshToken: nhận refresh token, xác thực và tạo access token
+    // // mới.
+    // @Override
+    // @Transactional(readOnly = true)
+    // public AuthenticationResponse refreshToken(String refreshToken) {
+    // // Validate refresh token để lấy username
+    // String username;
+    // try {
+    // username = jwtUtil.validateToken(refreshToken);
+    // } catch (Exception e) {
+    // throw new RuntimeException("Invalid refresh token: " + e.getMessage());
+    // }
+
+    // // Kiểm tra tài khoản có tồn tại không
+    // AccountDTO account = this.findByUsername(username);
+    // if (account == null) {
+    // throw new RuntimeException("Account not found for refresh token");
+    // }
+    // // Tạo access token mới dựa trên username
+    // String newAccessToken = jwtUtil.generateAccessToken(username);
+    // // Có thể sử dụng lại refreshToken cũ hoặc tạo mới (ở đây ta dùng lại
+    // // refreshToken)
+    // return new AuthenticationResponse(account, newAccessToken, refreshToken);
+    // }
 }

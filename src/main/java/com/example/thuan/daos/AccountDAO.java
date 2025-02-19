@@ -33,9 +33,9 @@ public interface AccountDAO {
 
     public AccountDTO findByEmail(String email);
 
-    public AuthenticationResponse login(String username, String rawPassword);
+    // public AuthenticationResponse login(String username, String rawPassword);
 
-    public AuthenticationResponse refreshToken(String refreshToken);
+    // public AuthenticationResponse refreshToken(String refreshToken);
     // boolean verifyAccount(String otpCodeRequest);
 
     // boolean changePassword(String passwordRequest);

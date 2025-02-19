@@ -12,9 +12,6 @@ public class EmailSenderUtil {
     @Autowired
     private JavaMailSender mailSender;
 
-    @Autowired
-    private JwtUtil JwtUtil;
-
     public void sendEmail(String toEmail, String otp) {
 
         // String jwtToken = JwtUtil.generateToken(toEmail, otp);
