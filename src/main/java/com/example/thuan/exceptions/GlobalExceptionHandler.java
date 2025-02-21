@@ -24,4 +24,10 @@ public class GlobalExceptionHandler {
                 BaseResponse.error("Lỗi hệ thống, vui lòng thử lại sau", 5000, ex.getMessage()));
     }
 
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<BaseResponse<?>> handleAuthenticationException(AuthenticationException ex) {
+        return ResponseEntity.status(ex.getStatus()).body(
+                BaseResponse.error(ex.getMessage(), ex.getErrorCode(), null));
+    }
+
 }

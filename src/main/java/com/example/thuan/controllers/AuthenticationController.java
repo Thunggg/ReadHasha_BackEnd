@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.thuan.daos.AuthenticationDAO;
+import com.example.thuan.exceptions.AuthenticationException;
 import com.example.thuan.request.AuthenticationRequest;
 import com.example.thuan.request.IntrospectRequest;
 import com.example.thuan.request.RefreshToken;
@@ -43,6 +44,9 @@ public class AuthenticationController {
         } catch (JsonProcessingException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     BaseResponse.error("Dữ liệu không hợp lệ", 400, null));
+        } catch (AuthenticationException ex) {
+            return ResponseEntity.status(ex.getStatus()).body(
+                    BaseResponse.error(ex.getMessage(), ex.getErrorCode(), null));
         }
     }
 

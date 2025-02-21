@@ -5,6 +5,7 @@ import com.example.thuan.models.AccountDTO;
 import com.example.thuan.request.AuthenticationRequest;
 import com.example.thuan.respone.AuthenticationResponse;
 import com.example.thuan.respone.BaseResponse;
+import com.example.thuan.ultis.ErrorCode;
 import com.example.thuan.ultis.JwtUtil;
 import com.example.thuan.ultis.Status;
 import com.nimbusds.jose.*;
@@ -41,28 +42,36 @@ import java.util.UUID;
 public class AuthenticationDAO {
 
     AccountDAO accountDAO;
-    InvalidatedTokenDAO invalidatedTokenDAO;
     JwtUtil JwtUtil;
 
     // authenticate
     public BaseResponse<AuthenticationResponse> authenticate(AuthenticationRequest request) {
         AccountDTO account = accountDAO.findByUsername(request.getUsername());
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
 
-        if (account == null) {
-            throw new AuthenticationException("Tài khoản không tồn tại!");
+        if (account == null || !passwordEncoder.matches(request.getPassword(), account.getPassword())) {
+            throw new AuthenticationException(
+                    ErrorCode.USER_NOT_FOUND.getMessage(),
+                    HttpStatus.NOT_FOUND,
+                    ErrorCode.USER_NOT_FOUND.getCode());
         }
 
         if (account.getAccStatus() == Status.INACTIVE_STATUS.getValue()) {
-            throw new AuthenticationException("Tài khoản đã bị khóa!");
+            throw new AuthenticationException(
+                    ErrorCode.USER_INACTIVE_STATUS.getMessage(),
+                    HttpStatus.FORBIDDEN,
+                    ErrorCode.USER_INACTIVE_STATUS.getCode());
         }
 
         if (account.getAccStatus() == Status.UNVERIFIED_STATUS.getValue()) {
-            throw new AuthenticationException("Tài khoản chưa xác thực email!");
-        }
+            String token = JwtUtil.generateTokenForRegister(account.getEmail());
+            // throw new AuthenticationException(
+            // ErrorCode.USER_UNVERIFIED_STATUS.getMessage(),
+            // HttpStatus.FORBIDDEN,
+            // ErrorCode.USER_UNVERIFIED_STATUS.getCode());
 
-        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
-        if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
-            throw new AuthenticationException("Sai tài khoản hoặc mật khẩu");
+            return BaseResponse.error_for_login_again(ErrorCode.USER_UNVERIFIED_STATUS.getMessage(),
+                    403, null, token);
         }
 
         String access_token = JwtUtil.generateAccessToken(account);

@@ -201,7 +201,7 @@ public class AccountDAOImpl implements AccountDAO {
                 throw new IllegalArgumentException("Tài khoản không tồn tại.");
             }
 
-            if (account.getAccStatus() != Status.INACTIVE_STATUS.getValue()) {
+            if (account.getAccStatus() != Status.UNVERIFIED_STATUS.getValue()) {
                 return false;
             }
 

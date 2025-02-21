@@ -25,4 +25,9 @@ public class BaseResponse<T> {
     public static <T> BaseResponse<T> error(String message, int statusCode, Object error) {
         return new BaseResponse<>(message, statusCode, null, error, null, null);
     }
+
+    public static <T> BaseResponse<T> error_for_login_again(String message, int statusCode, Object error,
+            String access_token) {
+        return new BaseResponse<>(message, statusCode, null, error, access_token, null);
+    }
 }
