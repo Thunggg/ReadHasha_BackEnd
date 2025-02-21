@@ -56,6 +56,10 @@ public class AuthenticationDAO {
             throw new AuthenticationException("Tài khoản đã bị khóa!");
         }
 
+        if (account.getAccStatus() == Status.UNVERIFIED_STATUS.getValue()) {
+            throw new AuthenticationException("Tài khoản chưa xác thực email!");
+        }
+
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
         if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
             throw new AuthenticationException("Sai tài khoản hoặc mật khẩu");

@@ -125,7 +125,7 @@ public class AccountDAOImpl implements AccountDAO {
         try {
             ObjectMapper obj = new ObjectMapper();
             AccountDTO accountDTO = obj.readValue(account, AccountDTO.class);
-            accountDTO.setAccStatus(Status.INACTIVE_STATUS.getValue());
+            accountDTO.setAccStatus(Status.UNVERIFIED_STATUS.getValue());
             accountDTO.setRole(1);
             accountDTO.setPassword(password.encode(accountDTO.getPassword()));
 
