@@ -10,10 +10,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.thuan.exceptions.AuthenticationException;
 import com.example.thuan.models.AccountDTO;
 import com.example.thuan.models.StaffDTO;
-import com.example.thuan.respone.AuthenticationResponse;
 import com.example.thuan.ultis.EmailSenderUtil;
 import com.example.thuan.ultis.JwtUtil;
 import com.example.thuan.ultis.RandomNumberGenerator;

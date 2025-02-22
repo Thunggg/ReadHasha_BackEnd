@@ -7,7 +7,6 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,10 +16,10 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.thuan.daos.AccountDAO;
-import com.example.thuan.exceptions.AuthenticationException;
+import com.example.thuan.daos.AccountDAOImpl;
 import com.example.thuan.models.AccountDTO;
-import com.example.thuan.respone.AuthenticationResponse;
 import com.example.thuan.respone.BaseResponse;
+import com.example.thuan.ultis.ErrorCode;
 import com.example.thuan.ultis.JwtUtil;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -114,48 +113,15 @@ public class AccountController {
         }
     }
 
-    // // ------------------- ĐĂNG NHẬP -------------------
-    // // Endpoint đăng nhập: xử lý toàn bộ logic ở DAO
-    // @PostMapping("/auth/login")
-    // public ResponseEntity<BaseResponse<?>> login(@RequestBody Map<String, String>
-    // loginRequest) {
-    // String username = loginRequest.get("username");
-    // String password = loginRequest.get("password");
-
-    // try {
-    // AuthenticationResponse loginResponse = accountDAO.login(username, password);
-    // return ResponseEntity.ok(BaseResponse.success(
-    // "Đăng nhập thành công",
-    // 200,
-    // loginResponse.getAccount(),
-    // loginResponse.getAccessToken(),
-    // loginResponse.getRefreshToken()));
-    // } catch (AuthenticationException e) {
-    // return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-    // .body(BaseResponse.error(e.getMessage(), 401, "Invalid credentials"));
-    // } catch (Exception e) {
-    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    // .body(BaseResponse.error("Lỗi hệ thống", 500, e.getMessage()));
-    // }
-    // }
-
-    // // ------------------- REFRESH TOKEN -------------------
-    // // Endpoint làm mới access token: nhận refresh token và trả về access token
-    // mới
-    // @PostMapping("/refresh")
-    // public ResponseEntity<BaseResponse<?>> refreshToken(@RequestBody Map<String,
-    // String> tokenRequest) {
-    // String refreshToken = tokenRequest.get("refreshToken");
-    // try {
-    // AuthenticationResponse loginResponse = accountDAO.refreshToken(refreshToken);
-    // return ResponseEntity.ok(BaseResponse.success("Token refreshed successfully",
-    // 200,
-    // loginResponse.getAccount(), loginResponse.getAccessToken(),
-    // loginResponse.getRefreshToken()));
-    // } catch (RuntimeException e) {
-    // return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-    // .body(BaseResponse.error(e.getMessage(), 401, "Invalid refresh token"));
-    // }
-    // }
+    @GetMapping("/fetch-account")
+    public BaseResponse<AccountDTO> getAccount(@RequestHeader("Authorization") String token) {
+        // Giải mã JWT để lấy email
+        String userName = jwtUtil.validateToken(token);
+        AccountDTO account = accountDAO.findByUsername(userName);
+        if (account == null) {
+            return BaseResponse.error(ErrorCode.TOKEN_EXPIRED.getMessage(), ErrorCode.TOKEN_EXPIRED.getCode(), null);
+        }
+        return BaseResponse.success("Lấy account thành công!", 200, account, null, null);
+    }
 
 }
