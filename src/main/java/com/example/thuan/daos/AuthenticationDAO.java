@@ -13,6 +13,9 @@ import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -45,7 +48,8 @@ public class AuthenticationDAO {
     JwtUtil JwtUtil;
 
     // authenticate
-    public BaseResponse<AuthenticationResponse> authenticate(AuthenticationRequest request) {
+    public BaseResponse<AuthenticationResponse> authenticate(AuthenticationRequest request,
+            HttpServletResponse response) {
         AccountDTO account = accountDAO.findByUsername(request.getUsername());
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
 
@@ -65,10 +69,6 @@ public class AuthenticationDAO {
 
         if (account.getAccStatus() == Status.UNVERIFIED_STATUS.getValue()) {
             String token = JwtUtil.generateTokenForRegister(account.getEmail());
-            // throw new AuthenticationException(
-            // ErrorCode.USER_UNVERIFIED_STATUS.getMessage(),
-            // HttpStatus.FORBIDDEN,
-            // ErrorCode.USER_UNVERIFIED_STATUS.getCode());
 
             return BaseResponse.error_for_login_again(ErrorCode.USER_UNVERIFIED_STATUS.getMessage(),
                     403, null, token);
@@ -77,9 +77,17 @@ public class AuthenticationDAO {
         String access_token = JwtUtil.generateAccessToken(account);
         String refresh_token = JwtUtil.generateRefreshToken(account);
 
+        // add refresh_token vào cookie
+        Cookie cookie = new Cookie("refresh_token", refresh_token);
+        cookie.setMaxAge(60 * 60 * 24 * 30); // 30 ngày
+        cookie.setHttpOnly(true); // Bảo mật hơn, không thể truy cập từ JavaScript
+        cookie.setSecure(true); // Chỉ gửi qua HTTPS
+        cookie.setPath("/"); // Áp dụng cho toàn bộ domain
+        response.addCookie(cookie); // ✅ Gửi cookie về client
+
         AuthenticationResponse authResponse = AuthenticationResponse.builder()
                 .accessToken(access_token)
-                .refreshToken(refresh_token)
+                .refreshToken(null)
                 .account(account)
                 .authenticate(true)
                 .build();

@@ -22,6 +22,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -35,12 +37,13 @@ public class AuthenticationController {
     JwtUtil jwtUtil;
 
     @PostMapping(value = "/login")
-    public ResponseEntity<BaseResponse<AuthenticationResponse>> authenticate(@RequestPart("login") String login) {
+    public ResponseEntity<BaseResponse<AuthenticationResponse>> authenticate(@RequestPart("login") String login,
+            HttpServletResponse response) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             AuthenticationRequest request = objectMapper.readValue(login, AuthenticationRequest.class);
-            BaseResponse<AuthenticationResponse> response = authenticationDAO.authenticate(request);
-            return ResponseEntity.status(response.getStatusCode()).body(response);
+            BaseResponse<AuthenticationResponse> res = authenticationDAO.authenticate(request, response);
+            return ResponseEntity.status(res.getStatusCode()).body(res);
         } catch (JsonProcessingException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     BaseResponse.error("Dữ liệu không hợp lệ", 400, null));
