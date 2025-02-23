@@ -10,9 +10,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.thuan.exceptions.AppException;
 import com.example.thuan.models.AccountDTO;
 import com.example.thuan.models.StaffDTO;
 import com.example.thuan.ultis.EmailSenderUtil;
+import com.example.thuan.ultis.ErrorCode;
 import com.example.thuan.ultis.JwtUtil;
 import com.example.thuan.ultis.RandomNumberGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -218,62 +220,23 @@ public class AccountDAOImpl implements AccountDAO {
         }
     }
 
-    // Phương thức login: kiểm tra username, so sánh password và tạo token.
-    // @Override
-    // @Transactional(readOnly = true)
-    // public AuthenticationResponse login(String username, String password) {
-    // // Tìm tài khoản theo username
-    // AccountDTO account = this.findByUsername(username);
+    @Override
+    public List<AccountDTO> getAccounts(int offset, int pageSize) {
 
-    // // Trường hợp tài khoản không tồn tại
-    // if (account == null) {
-    // throw new AuthenticationException("Tài khoản không tồn tại!");
-    // }
+        try {
 
-    // // Trường hợp tài khoản đã bị khóa
-    // if (account.getAccStatus() == Status.INACTIVE_STATUS.getValue()) {
-    // throw new AuthenticationException("Tài khoản đã bị khóa!");
-    // }
+            if (pageSize < 1) {
+                throw new AppException(ErrorCode.PAGE_SIZE_NOT_VALID);
+            }
 
-    // // Trường hợp tài khoản hoặc mật khẩu không đúng
-    // PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
-    // boolean authenticated = passwordEncoder.matches(password,
-    // account.getPassword());
-    // if (!authenticated) {
-    // throw new AuthenticationException("Sai tài khoản hoặc mật khẩu");
-    // }
-
-    // // Nếu xác thực thành công, tạo Access Token và Refresh Token dựa trên
-    // username
-    // String accessToken = jwtUtil.generateAccessToken(account);
-    // String refreshToken = jwtUtil.generateRefreshToken(account);
-    // return new AuthenticationResponse(account, accessToken, refreshToken, true,
-    // "Đăng nhập thành công!");
-    // }
-
-    // // ------------------- XỬ LÝ REFRESH TOKEN -------------------
-    // // Phương thức refreshToken: nhận refresh token, xác thực và tạo access token
-    // // mới.
-    // @Override
-    // @Transactional(readOnly = true)
-    // public AuthenticationResponse refreshToken(String refreshToken) {
-    // // Validate refresh token để lấy username
-    // String username;
-    // try {
-    // username = jwtUtil.validateToken(refreshToken);
-    // } catch (Exception e) {
-    // throw new RuntimeException("Invalid refresh token: " + e.getMessage());
-    // }
-
-    // // Kiểm tra tài khoản có tồn tại không
-    // AccountDTO account = this.findByUsername(username);
-    // if (account == null) {
-    // throw new RuntimeException("Account not found for refresh token");
-    // }
-    // // Tạo access token mới dựa trên username
-    // String newAccessToken = jwtUtil.generateAccessToken(username);
-    // // Có thể sử dụng lại refreshToken cũ hoặc tạo mới (ở đây ta dùng lại
-    // // refreshToken)
-    // return new AuthenticationResponse(account, newAccessToken, refreshToken);
-    // }
+            TypedQuery<AccountDTO> query = entityManager.createQuery("SELECT a FROM AccountDTO a", AccountDTO.class);
+            query.setFirstResult(offset);
+            query.setMaxResults(pageSize);
+            return query.getResultList();
+        } catch (AppException e) {
+            throw new AppException(e.getErrorCode());
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.INTERNAL_ERROR);
+        }
+    }
 }

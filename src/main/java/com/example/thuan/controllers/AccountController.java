@@ -12,13 +12,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.thuan.daos.AccountDAO;
 import com.example.thuan.daos.AccountDAOImpl;
+import com.example.thuan.exceptions.AppException;
 import com.example.thuan.models.AccountDTO;
 import com.example.thuan.respone.BaseResponse;
+import com.example.thuan.respone.Meta;
+import com.example.thuan.respone.PaginationResponse;
 import com.example.thuan.ultis.ErrorCode;
 import com.example.thuan.ultis.JwtUtil;
 
@@ -124,4 +128,28 @@ public class AccountController {
         return BaseResponse.success("Lấy account thành công!", 200, account, null, null);
     }
 
+    @GetMapping("/account-pagination")
+    public BaseResponse<PaginationResponse<AccountDTO>> getAccounts(@RequestParam(defaultValue = "1") int current,
+            @RequestParam(defaultValue = "5") int pageSize) {
+
+        try {
+            int offset = (current - 1) * pageSize;
+            List<AccountDTO> data = accountDAO.getAccounts(offset, pageSize);
+            long total = accountDAO.findAll().size();
+            int pages = (pageSize == 0) ? 0 : (int) Math.ceil((double) total / pageSize);
+
+            // Build meta object
+            Meta meta = new Meta();
+            meta.setCurrent(current);
+            meta.setPageSize(pageSize);
+            meta.setPages(pages);
+            meta.setTotal(total);
+
+            PaginationResponse<AccountDTO> pagingRes = new PaginationResponse<>(data, meta);
+
+            return BaseResponse.success("Lấy số account thành công!", 200, pagingRes, null, null);
+        } catch (AppException e) {
+            return BaseResponse.error(e.getMessage(), e.getErrorCode().getCode(), null);
+        }
+    }
 }
