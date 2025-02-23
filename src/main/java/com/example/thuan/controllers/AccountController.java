@@ -1,10 +1,12 @@
 package com.example.thuan.controllers;
 
 import java.util.ArrayList;
+import java.sql.Date;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -129,16 +131,25 @@ public class AccountController {
     }
 
     @GetMapping("/account-pagination")
-    public BaseResponse<PaginationResponse<AccountDTO>> getAccounts(@RequestParam(defaultValue = "1") int current,
+    public BaseResponse<PaginationResponse<AccountDTO>> getAccounts(
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String userName,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date startDob,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date endDob,
+            @RequestParam(defaultValue = "1") int current,
             @RequestParam(defaultValue = "5") int pageSize) {
 
         try {
             int offset = (current - 1) * pageSize;
-            List<AccountDTO> data = accountDAO.getAccounts(offset, pageSize);
-            long total = accountDAO.findAll().size();
+
+            // Gọi DAO với các tham số tìm kiếm
+            List<AccountDTO> data = accountDAO.getAccounts(offset, pageSize, email, userName, startDob, endDob);
+
+            // Đếm tổng số bản ghi theo điều kiện tìm kiếm
+            long total = accountDAO.countAccountsWithConditions(email, userName, startDob, endDob).size();
+
             int pages = (pageSize == 0) ? 0 : (int) Math.ceil((double) total / pageSize);
 
-            // Build meta object
             Meta meta = new Meta();
             meta.setCurrent(current);
             meta.setPageSize(pageSize);
@@ -146,8 +157,7 @@ public class AccountController {
             meta.setTotal(total);
 
             PaginationResponse<AccountDTO> pagingRes = new PaginationResponse<>(data, meta);
-
-            return BaseResponse.success("Lấy số account thành công!", 200, pagingRes, null, null);
+            return BaseResponse.success("Lấy danh sách account thành công!", 200, pagingRes, null, null);
         } catch (AppException e) {
             return BaseResponse.error(e.getMessage(), e.getErrorCode().getCode(), null);
         }

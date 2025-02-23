@@ -1,5 +1,6 @@
 package com.example.thuan.daos;
 
+import java.sql.Date;
 import java.util.List;
 
 import com.example.thuan.models.AccountDTO;
@@ -25,5 +26,8 @@ public interface AccountDAO {
 
     public AccountDTO findByEmail(String email);
 
-    public List<AccountDTO> getAccounts(int offset, int pageSize);
+    public List<AccountDTO> getAccounts(int offset, int pageSize, String email, String userName, Date startDob,
+            Date endDob);
+
+    public List<AccountDTO> countAccountsWithConditions(String email, String userName, Date startDob, Date endDob);
 }

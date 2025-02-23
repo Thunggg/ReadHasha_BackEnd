@@ -2,7 +2,9 @@ package com.example.thuan.daos;
 
 import com.example.thuan.ultis.Status;
 import java.sql.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -221,17 +223,86 @@ public class AccountDAOImpl implements AccountDAO {
     }
 
     @Override
-    public List<AccountDTO> getAccounts(int offset, int pageSize) {
+    public List<AccountDTO> getAccounts(int offset, int pageSize, String email, String userName, Date startDob,
+            Date endDob) {
 
         try {
 
-            if (pageSize < 1) {
-                throw new AppException(ErrorCode.PAGE_SIZE_NOT_VALID);
+            // Xây dựng câu query động
+            StringBuilder jpql = new StringBuilder("SELECT a FROM AccountDTO a WHERE 1=1 ");
+            Map<String, Object> params = new HashMap<>();
+
+            // Thêm điều kiện email
+            if (email != null && !email.isEmpty()) {
+                jpql.append("AND LOWER(a.email) LIKE LOWER(:email) ");
+                params.put("email", "%" + email + "%");
             }
 
-            TypedQuery<AccountDTO> query = entityManager.createQuery("SELECT a FROM AccountDTO a", AccountDTO.class);
+            // Thêm điều kiện userName
+            if (userName != null && !userName.isEmpty()) {
+                jpql.append("AND LOWER(a.username) LIKE LOWER(:userName) ");
+                params.put("userName", "%" + userName + "%");
+            }
+
+            // Thêm điều kiện khoảng thời gian dob
+            if (startDob != null && endDob != null) {
+                jpql.append("AND a.dob BETWEEN :startDob AND :endDob ");
+                params.put("startDob", startDob);
+                params.put("endDob", endDob);
+            }
+
+            // Tạo query
+            TypedQuery<AccountDTO> query = entityManager.createQuery(jpql.toString(), AccountDTO.class);
+
+            // Set parameters
+            params.forEach(query::setParameter);
+
+            // Phân trang
             query.setFirstResult(offset);
             query.setMaxResults(pageSize);
+
+            return query.getResultList();
+        } catch (AppException e) {
+            throw new AppException(e.getErrorCode());
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.INTERNAL_ERROR);
+        }
+    }
+
+    @Override
+    public List<AccountDTO> countAccountsWithConditions(String email, String userName, Date startDob, Date endDob) {
+
+        try {
+
+            // Xây dựng câu query động
+            StringBuilder jpql = new StringBuilder("SELECT a FROM AccountDTO a WHERE 1=1 ");
+            Map<String, Object> params = new HashMap<>();
+
+            // Thêm điều kiện email
+            if (email != null && !email.isEmpty()) {
+                jpql.append("AND LOWER(a.email) LIKE LOWER(:email) ");
+                params.put("email", "%" + email + "%");
+            }
+
+            // Thêm điều kiện userName
+            if (userName != null && !userName.isEmpty()) {
+                jpql.append("AND LOWER(a.username) LIKE LOWER(:userName) ");
+                params.put("userName", "%" + userName + "%");
+            }
+
+            // Thêm điều kiện khoảng thời gian dob
+            if (startDob != null && endDob != null) {
+                jpql.append("AND a.dob BETWEEN :startDob AND :endDob ");
+                params.put("startDob", startDob);
+                params.put("endDob", endDob);
+            }
+
+            // Tạo query
+            TypedQuery<AccountDTO> query = entityManager.createQuery(jpql.toString(), AccountDTO.class);
+
+            // Set parameters
+            params.forEach(query::setParameter);
+
             return query.getResultList();
         } catch (AppException e) {
             throw new AppException(e.getErrorCode());
