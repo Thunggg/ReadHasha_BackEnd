@@ -27,7 +27,7 @@ public interface AccountDAO {
     public AccountDTO findByEmail(String email);
 
     public List<AccountDTO> getAccounts(int offset, int pageSize, String email, String userName, Date startDob,
-            Date endDob);
+            Date endDob, String sort);
 
     public List<AccountDTO> countAccountsWithConditions(String email, String userName, Date startDob, Date endDob);
 }

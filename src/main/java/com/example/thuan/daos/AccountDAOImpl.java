@@ -224,7 +224,7 @@ public class AccountDAOImpl implements AccountDAO {
 
     @Override
     public List<AccountDTO> getAccounts(int offset, int pageSize, String email, String userName, Date startDob,
-            Date endDob) {
+            Date endDob, String sort) {
 
         try {
 
@@ -249,6 +249,18 @@ public class AccountDAOImpl implements AccountDAO {
                 jpql.append("AND a.dob BETWEEN :startDob AND :endDob ");
                 params.put("startDob", startDob);
                 params.put("endDob", endDob);
+            }
+
+            // Xử lý sắp xếp
+            if (sort != null) {
+                if (sort.equalsIgnoreCase("-dob")) {
+                    jpql.append("ORDER BY a.dob DESC");
+                } else if (sort.equalsIgnoreCase("dob")) {
+                    jpql.append("ORDER BY a.dob ASC");
+                }
+            } else {
+                // Mặc định sắp xếp theo dob giảm dần nếu không có sort
+                jpql.append("ORDER BY a.dob DESC");
             }
 
             // Tạo query

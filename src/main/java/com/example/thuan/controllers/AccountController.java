@@ -137,13 +137,14 @@ public class AccountController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date startDob,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date endDob,
             @RequestParam(defaultValue = "1") int current,
-            @RequestParam(defaultValue = "5") int pageSize) {
+            @RequestParam(defaultValue = "5") int pageSize,
+            @RequestParam(required = false) String sort) {
 
         try {
             int offset = (current - 1) * pageSize;
 
             // Gọi DAO với các tham số tìm kiếm
-            List<AccountDTO> data = accountDAO.getAccounts(offset, pageSize, email, userName, startDob, endDob);
+            List<AccountDTO> data = accountDAO.getAccounts(offset, pageSize, email, userName, startDob, endDob, sort);
 
             // Đếm tổng số bản ghi theo điều kiện tìm kiếm
             long total = accountDAO.countAccountsWithConditions(email, userName, startDob, endDob).size();
