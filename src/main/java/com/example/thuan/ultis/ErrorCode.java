@@ -2,9 +2,10 @@ package com.example.thuan.ultis;
 
 public enum ErrorCode {
     // 1001 - 1050: là custom lỗi cho token
-    TOKEN_REVOKED(1001, "Refresh token has been revoked"),
+    TOKEN_REVOKED(1001, "Refresh token đã bị thu hồi"),
     TOKEN_EXPIRED(1002, "Refresh token has expired"),
-    INVALID_TOKEN(1003, "Invalid refresh token"),
+    INVALID_TOKEN(1003, "Sai refresh token"),
+    WRONG_TOKEN(1004, "Refresh token không tồn tại!"),
 
     // 1051- 20000: là custom lỗi cho user
     USER_NOT_FOUND(1051, "Sai tài khoản hoặc mật khẩu!"),

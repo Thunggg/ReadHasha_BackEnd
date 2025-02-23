@@ -3,6 +3,7 @@ package com.example.thuan.controllers;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,7 @@ import com.example.thuan.daos.AuthenticationDAO;
 import com.example.thuan.exceptions.AuthenticationException;
 import com.example.thuan.request.AuthenticationRequest;
 import com.example.thuan.request.IntrospectRequest;
+import com.example.thuan.request.LogoutRequest;
 import com.example.thuan.request.RefreshToken;
 import com.example.thuan.respone.AuthenticationResponse;
 import com.example.thuan.respone.BaseResponse;
@@ -24,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.HttpServletResponse;
 
+@Slf4j // cho phép sử dụng log.infor
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -60,11 +63,11 @@ public class AuthenticationController {
     // return ResponseEntity.status(HttpStatus.OK).body(response);
     // }
 
-    // @PostMapping("/logout")
-    // void logout(@RequestBody LogoutRequest request) throws Exception {
-    // System.out.println("logout successfully!");
-    // authenticationDAO.logout(request);
-    // }
+    @PostMapping("/logout")
+    public ResponseEntity<BaseResponse<?>> logout(@RequestBody LogoutRequest request, HttpServletResponse response) {
+        authenticationDAO.logout(request, response);
+        return ResponseEntity.ok(BaseResponse.success("Logout thành công!", 200, null, null, null));
+    }
 
     @PostMapping("/refresh")
     ResponseEntity<AuthenticationResponse> authenticate(@RequestBody RefreshToken request) throws Exception {

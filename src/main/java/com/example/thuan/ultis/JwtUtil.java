@@ -2,6 +2,7 @@ package com.example.thuan.ultis;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,7 @@ import com.example.thuan.respone.AuthenticationResponse;
 import com.example.thuan.respone.IntrospectResponse;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import java.util.UUID;
 import java.security.Key;
@@ -29,6 +31,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
+@Slf4j
 @Component
 public class JwtUtil {
 
@@ -139,14 +142,30 @@ public class JwtUtil {
     // veriry token
     public SignedJWT verifyToken(String token, boolean isRefresh) {
         try {
+            // Đảm bảo JWT chưa bị thay đổi hoặc giả mạo.
             JWSVerifier verifier = new MACVerifier(SECRET_KEY.getBytes());
 
+            // Chuyển chuỗi JWT thành đối tượng SignedJWT để dễ dàng truy xuất các thông tin
+            // trong token.
             SignedJWT signedJWT = SignedJWT.parse(token);
 
-            Date expiryTime = (isRefresh)
-                    ? new Date(signedJWT.getJWTClaimsSet().getIssueTime()
-                            .toInstant().plus(ACCESS_TOKEN_EXPIRATION, ChronoUnit.DAYS).toEpochMilli())
-                    : signedJWT.getJWTClaimsSet().getExpirationTime();
+            Date expiryTime;
+
+            // nếu isRefresh là true => refresh token
+            // nếu isRefresh là false => access token
+            if (isRefresh) {
+                // Lấy thời gian phát hành của token
+                Date issueTime = signedJWT.getJWTClaimsSet().getIssueTime();
+
+                // Cộng thêm số ngày cho phép refresh (REFRESHABLE_DURATION)
+                Instant newExpiryTime = issueTime.toInstant().plus(REFRESH_TOKEN_EXPIRATION, ChronoUnit.DAYS);
+
+                // Chuyển đổi thành Date
+                expiryTime = Date.from(newExpiryTime);
+            } else {
+                // Lấy thời gian hết hạn trực tiếp từ token (Expiration Time)
+                expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+            }
 
             boolean verified = signedJWT.verify(verifier);
             if (!(verified && expiryTime.after(new Date()))) {
