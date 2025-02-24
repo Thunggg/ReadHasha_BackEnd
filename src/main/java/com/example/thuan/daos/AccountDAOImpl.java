@@ -19,6 +19,7 @@ import com.example.thuan.ultis.EmailSenderUtil;
 import com.example.thuan.ultis.ErrorCode;
 import com.example.thuan.ultis.JwtUtil;
 import com.example.thuan.ultis.RandomNumberGenerator;
+import com.example.thuan.ultis.Role;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.persistence.EntityManager;
@@ -89,27 +90,28 @@ public class AccountDAOImpl implements AccountDAO {
         return null;
     }
 
-    @Override
-    @Transactional
-    public void deleteByUsername(String username) {
-        AccountDTO account = this.findByUsername(username);
-        if (account.getRole() == 1) {
-            account.setAccStatus(0);
-            entityManager.merge(account);
-        } else {
-            try {
-                TypedQuery<StaffDTO> query = entityManager.createQuery(
-                        "SELECT s FROM StaffDTO s WHERE s.username.username = :username", StaffDTO.class);
-                query.setParameter("username", username);
-                // StaffDTO staff = query.getSingleResult();
-                account.setAccStatus(0);
-                entityManager.merge(account);
-            } catch (Exception e) {
-                System.out.println("Error in findStaff: " + e.getMessage());
-            }
-        }
+    // @Override
+    // @Transactional
+    // public void deleteByUsername(String username) {
+    // AccountDTO account = this.findByUsername(username);
+    // if (account.getRole() == 1) {
+    // account.setAccStatus(0);
+    // entityManager.merge(account);
+    // } else {
+    // try {
+    // TypedQuery<StaffDTO> query = entityManager.createQuery(
+    // "SELECT s FROM StaffDTO s WHERE s.username.username = :username",
+    // StaffDTO.class);
+    // query.setParameter("username", username);
+    // // StaffDTO staff = query.getSingleResult();
+    // account.setAccStatus(0);
+    // entityManager.merge(account);
+    // } catch (Exception e) {
+    // System.out.println("Error in findStaff: " + e.getMessage());
+    // }
+    // }
 
-    }
+    // }
 
     @Override
     public List<AccountDTO> findAll() {
@@ -322,4 +324,27 @@ public class AccountDAOImpl implements AccountDAO {
             throw new AppException(ErrorCode.INTERNAL_ERROR);
         }
     }
+
+    @Transactional
+    @Override
+    public boolean deleteUserByUsername(String username) {
+        try {
+            AccountDTO account = findByUsername(username);
+            if (account == null) {
+                return false;
+            }
+            if (account.getRole() == Role.ROLE_ADMIN.getValue()) {
+                return false;
+            }
+
+            entityManager.createQuery("DELETE FROM AccountDTO a WHERE a.username = :username")
+                    .setParameter("username", username)
+                    .executeUpdate();
+
+            return true;
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.INTERNAL_ERROR);
+        }
+    }
+
 }

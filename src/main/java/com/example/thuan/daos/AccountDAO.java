@@ -14,7 +14,9 @@ public interface AccountDAO {
 
     List<AccountDTO> searchAccounts(String username);
 
-    void deleteByUsername(String username);
+    // void deleteByUsername(String username);
+
+    public boolean deleteUserByUsername(String username);
 
     List<AccountDTO> findAll();
 

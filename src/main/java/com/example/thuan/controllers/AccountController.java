@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -132,13 +133,13 @@ public class AccountController {
 
     @GetMapping("/account-pagination")
     public BaseResponse<PaginationResponse<AccountDTO>> getAccounts(
-            @RequestParam(required = false) String email,
-            @RequestParam(required = false) String userName,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date startDob,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date endDob,
-            @RequestParam(defaultValue = "1") int current,
-            @RequestParam(defaultValue = "5") int pageSize,
-            @RequestParam(required = false) String sort) {
+            @RequestParam(name = "email", required = false) String email,
+            @RequestParam(name = "userName", required = false) String userName,
+            @RequestParam(name = "startDob", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date startDob,
+            @RequestParam(name = "endDob", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date endDob,
+            @RequestParam(name = "current", defaultValue = "1") int current,
+            @RequestParam(name = "pageSize", defaultValue = "5") int pageSize,
+            @RequestParam(name = "sort", required = false) String sort) {
 
         try {
             int offset = (current - 1) * pageSize;
@@ -163,4 +164,27 @@ public class AccountController {
             return BaseResponse.error(e.getMessage(), e.getErrorCode().getCode(), null);
         }
     }
+
+    @DeleteMapping("/delete-user")
+    public ResponseEntity<BaseResponse<String>> deleteUserByUsername(
+            @RequestParam(name = "username") String username) {
+        try {
+            // Kiểm tra xem người dùng có tồn tại và không phải là admin
+            boolean isDeleted = accountDAO.deleteUserByUsername(username);
+
+            if (isDeleted) {
+                return ResponseEntity.ok()
+                        .body(BaseResponse.success("Xóa người dùng thành công!", 200, null, null, null));
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(BaseResponse.error("Không thể xóa người dùng. Người dùng không tồn tại hoặc là admin.",
+                                400,
+                                "Invalid Request"));
+            }
+        } catch (AppException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(BaseResponse.error("Xóa người dùng thất bại", 500, e.getMessage()));
+        }
+    }
+
 }
