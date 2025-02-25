@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,6 +24,7 @@ import com.example.thuan.daos.AccountDAO;
 import com.example.thuan.daos.AccountDAOImpl;
 import com.example.thuan.exceptions.AppException;
 import com.example.thuan.models.AccountDTO;
+import com.example.thuan.request.UpdateUserRequest;
 import com.example.thuan.respone.BaseResponse;
 import com.example.thuan.respone.Meta;
 import com.example.thuan.respone.PaginationResponse;
@@ -184,6 +186,29 @@ public class AccountController {
         } catch (AppException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(BaseResponse.error("Xóa người dùng thất bại", 500, e.getMessage()));
+        }
+    }
+
+    @PutMapping("/update-user")
+    public ResponseEntity<BaseResponse<AccountDTO>> updateUser(
+            @RequestBody UpdateUserRequest updateRequest) {
+        try {
+            AccountDTO updatedUser = accountDAO.updateUser(updateRequest);
+
+            return ResponseEntity.ok()
+                    .body(BaseResponse.success(
+                            "Cập nhật thành công",
+                            200,
+                            updatedUser,
+                            null,
+                            null));
+
+        } catch (AppException e) {
+            return ResponseEntity.status(e.getErrorCode().getHttpStatus())
+                    .body(BaseResponse.error(e.getMessage(), e.getErrorCode().getCode(), null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(BaseResponse.error("Lỗi server", 500, e.getMessage()));
         }
     }
 

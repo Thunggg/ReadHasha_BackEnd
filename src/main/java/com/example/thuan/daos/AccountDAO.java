@@ -4,6 +4,7 @@ import java.sql.Date;
 import java.util.List;
 
 import com.example.thuan.models.AccountDTO;
+import com.example.thuan.request.UpdateUserRequest;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -32,4 +33,6 @@ public interface AccountDAO {
             Date endDob, String sort);
 
     public List<AccountDTO> countAccountsWithConditions(String email, String userName, Date startDob, Date endDob);
+
+    AccountDTO updateUser(UpdateUserRequest updateRequest);
 }

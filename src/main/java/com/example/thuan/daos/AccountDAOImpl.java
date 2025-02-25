@@ -2,6 +2,7 @@ package com.example.thuan.daos;
 
 import com.example.thuan.ultis.Status;
 import java.sql.Date;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.thuan.exceptions.AppException;
 import com.example.thuan.models.AccountDTO;
 import com.example.thuan.models.StaffDTO;
+import com.example.thuan.request.UpdateUserRequest;
 import com.example.thuan.ultis.EmailSenderUtil;
 import com.example.thuan.ultis.ErrorCode;
 import com.example.thuan.ultis.JwtUtil;
@@ -345,6 +347,50 @@ public class AccountDAOImpl implements AccountDAO {
         } catch (Exception e) {
             throw new AppException(ErrorCode.INTERNAL_ERROR);
         }
+    }
+
+    @Transactional
+    @Override
+    public AccountDTO updateUser(UpdateUserRequest updateRequest) {
+        AccountDTO account = findByUsername(updateRequest.getUsername());
+
+        if (account == null) {
+            throw new AppException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        if (account.getRole() == Role.ROLE_ADMIN.getValue()) {
+            throw new AppException(ErrorCode.USER_NOT_UPDATE);
+        }
+
+        // 2. Cập nhật các trường được phép thay đổi
+        if (updateRequest.getFirstName() != null) {
+            account.setFirstName(updateRequest.getFirstName());
+        }
+        if (updateRequest.getLastName() != null) {
+            account.setLastName(updateRequest.getLastName());
+        }
+        if (updateRequest.getDob() != null) {
+            account.setDob(updateRequest.getDob());
+        }
+        if (updateRequest.getPhone() != null) {
+            account.setPhone(updateRequest.getPhone());
+        }
+        if (updateRequest.getAddress() != null) {
+            account.setAddress(updateRequest.getAddress());
+        }
+        if (updateRequest.getSex() != null) {
+            account.setSex(updateRequest.getSex());
+        }
+        if (updateRequest.getAccStatus() != null) {
+            account.setAccStatus(updateRequest.getAccStatus());
+        }
+
+        // 3. Lưu thay đổi
+        AccountDTO managedAccount = entityManager.merge(account);
+        entityManager.flush();
+        entityManager.refresh(managedAccount);
+
+        return managedAccount;
     }
 
 }

@@ -60,9 +60,9 @@ public class AuthenticationDAO {
 
         if (account == null || !passwordEncoder.matches(request.getPassword(), account.getPassword())) {
             throw new AuthenticationException(
-                    ErrorCode.USER_NOT_FOUND.getMessage(),
+                    ErrorCode.USER_OR_PASSWORD_WRONG.getMessage(),
                     HttpStatus.NOT_FOUND,
-                    ErrorCode.USER_NOT_FOUND.getCode());
+                    ErrorCode.USER_OR_PASSWORD_WRONG.getCode());
         }
 
         if (account.getAccStatus() == Status.INACTIVE_STATUS.getValue()) {
