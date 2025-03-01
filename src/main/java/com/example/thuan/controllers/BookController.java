@@ -169,4 +169,28 @@ public class BookController {
                             null));
         }
     }
+
+    @PutMapping(path = "/update-book", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public BaseResponse<BookDTO> updateBook(
+            @RequestPart("book") String bookJson,
+            @RequestPart(value = "image", required = false) MultipartFile image) {
+
+        try {
+            BookDTO book = objectMapper.readValue(bookJson, BookDTO.class);
+            BookDTO updatedBook = bookDAO.processBookUpdate(book, image);
+            return BaseResponse.success("Cập nhật sách thành công!", 200, updatedBook, null, null);
+
+        } catch (AppException e) {
+            return BaseResponse.error(
+                    e.getMessage(),
+                    e.getErrorCode().getCode(),
+                    null);
+        } catch (Exception e) {
+            return BaseResponse.error(
+                    ErrorCode.INTERNAL_ERROR.getMessage(),
+                    ErrorCode.INTERNAL_ERROR.getCode(),
+                    null);
+        }
+    }
+
 }

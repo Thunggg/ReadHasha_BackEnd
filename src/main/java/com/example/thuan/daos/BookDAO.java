@@ -20,7 +20,8 @@ public interface BookDAO {
 
         List<BookDTO> searchBooks(String searchTerm);
 
-        List<BookDTO> findBooksByTitleAndAuthorAndPublisher(String bookTitle, String author, String publisher);
+        List<BookDTO> findBooksByTitleAndAuthorAndPublisher(String bookTitle, String author, String publisher,
+                        Integer excludeBookId);
 
         List<BookDTO> sortBooks(String sortBy, String sortOrder);
 
@@ -49,4 +50,5 @@ public interface BookDAO {
 
         public void deleteBookWithCategories(Integer bookId);
 
+        BookDTO processBookUpdate(BookDTO book, MultipartFile image);
 }

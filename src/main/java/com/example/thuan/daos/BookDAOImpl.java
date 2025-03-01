@@ -123,17 +123,37 @@ public class BookDAOImpl implements BookDAO {
     }
 
     @Override
-    public List<BookDTO> findBooksByTitleAndAuthorAndPublisher(String bookTitle, String author, String publisher) {
-        System.out.println(
-                "Searching for book with title: " + bookTitle + ", author: " + author + ", publisher: " + publisher);
-        List<BookDTO> result = entityManager.createQuery(
-                "SELECT b FROM BookDTO b WHERE b.bookTitle = :bookTitle AND b.author = :author AND b.publisher = :publisher",
-                BookDTO.class)
+    public List<BookDTO> findBooksByTitleAndAuthorAndPublisher(
+            String bookTitle,
+            String author,
+            String publisher,
+            Integer excludeBookId // Thêm tham số để loại trừ bản ghi hiện tại
+    ) {
+        // Xây dựng câu query cơ bản
+        StringBuilder jpql = new StringBuilder(
+                "SELECT b FROM BookDTO b WHERE " +
+                        "b.bookTitle = :bookTitle AND " +
+                        "b.author = :author AND " +
+                        "b.publisher = :publisher");
+
+        // Thêm điều kiện loại trừ bookID nếu được cung cấp
+        if (excludeBookId != null) {
+            jpql.append(" AND b.bookID != :excludeBookId");
+        }
+
+        // Tạo query
+        TypedQuery<BookDTO> query = entityManager.createQuery(jpql.toString(), BookDTO.class)
                 .setParameter("bookTitle", bookTitle)
                 .setParameter("author", author)
-                .setParameter("publisher", publisher)
-                .getResultList();
-        System.out.println("Found books: " + result.size());
+                .setParameter("publisher", publisher);
+
+        // Thiết lập tham số excludeBookId nếu có
+        if (excludeBookId != null) {
+            query.setParameter("excludeBookId", excludeBookId);
+        }
+
+        // Thực thi và trả về kết quả
+        List<BookDTO> result = query.getResultList();
         return result;
     }
 
@@ -273,7 +293,8 @@ public class BookDAOImpl implements BookDAO {
         List<BookDTO> existingBooks = findBooksByTitleAndAuthorAndPublisher(
                 book.getBookTitle(),
                 book.getAuthor(),
-                book.getPublisher());
+                book.getPublisher(),
+                book.getBookID());
 
         if (!existingBooks.isEmpty()) {
             throw new AppException(ErrorCode.BOOK_ALREADY_EXISTS);
@@ -361,6 +382,72 @@ public class BookDAOImpl implements BookDAO {
 
         if (deletedBooks == 0) {
             throw new AppException(ErrorCode.BOOK_NOT_FOUND);
+        }
+    }
+
+    @Override
+    @Transactional
+    public BookDTO processBookUpdate(BookDTO updatedBook, MultipartFile image) {
+        try {
+            // Kiểm tra sách tồn tại
+            BookDTO existingBook = find(updatedBook.getBookID());
+            if (existingBook == null) {
+                throw new AppException(ErrorCode.BOOK_NOT_FOUND);
+            }
+
+            // Kiểm tra trùng lặp (trừ chính nó)
+            List<BookDTO> existingBooks = findBooksByTitleAndAuthorAndPublisher(
+                    updatedBook.getBookTitle(),
+                    updatedBook.getAuthor(),
+                    updatedBook.getPublisher(),
+                    updatedBook.getBookID());
+            if (!existingBooks.isEmpty()) {
+                throw new AppException(ErrorCode.BOOK_ALREADY_EXISTS);
+            }
+
+            // Cập nhật thông tin cơ bản
+            // Cập nhật tất cả các trường dữ liệu từ updatedBook sang existingBook
+            existingBook.setBookTitle(updatedBook.getBookTitle());
+            existingBook.setAuthor(updatedBook.getAuthor());
+            existingBook.setTranslator(updatedBook.getTranslator());
+            existingBook.setPublisher(updatedBook.getPublisher());
+            existingBook.setPublicationYear(updatedBook.getPublicationYear());
+            existingBook.setIsbn(updatedBook.getIsbn());
+            existingBook.setBookDescription(updatedBook.getBookDescription());
+            existingBook.setHardcover(updatedBook.getHardcover());
+            existingBook.setDimension(updatedBook.getDimension());
+            existingBook.setWeight(updatedBook.getWeight());
+            existingBook.setBookPrice(updatedBook.getBookPrice());
+            existingBook.setBookQuantity(updatedBook.getBookQuantity());
+            existingBook.setBookStatus(updatedBook.getBookStatus());
+
+            // Xử lý ảnh
+            if (image != null && !image.isEmpty()) {
+                String imagePath = handleImageUpload(image, existingBook.getBookID());
+                existingBook.setImage(imagePath);
+            }
+
+            // 5. Xóa toàn bộ danh mục cũ
+            entityManager.createQuery("DELETE FROM BookCategoryDTO bc WHERE bc.bookId = :bookId")
+                    .setParameter("bookId", existingBook)
+                    .executeUpdate();
+
+            // 6. Thêm danh mục mới
+            if (updatedBook.getBookCategories() != null && !updatedBook.getBookCategories().isEmpty()) {
+                updatedBook.getBookCategories().forEach(categoryDTO -> {
+                    BookCategoryDTO newCategory = new BookCategoryDTO();
+                    newCategory.setBookId(existingBook); // Liên kết với sách hiện tại
+                    newCategory.setCatId(categoryDTO.getCatId()); // Lấy từ DTO truyền vào
+                    entityManager.persist(newCategory); // INSERT danh mục mới
+                });
+            }
+
+            // 7. Đảm bảo thay đổi được lưu
+            entityManager.flush();
+            return entityManager.merge(existingBook);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
         }
     }
 }
