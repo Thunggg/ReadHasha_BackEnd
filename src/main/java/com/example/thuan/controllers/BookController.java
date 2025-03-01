@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -142,6 +143,30 @@ public class BookController {
                     ErrorCode.INTERNAL_ERROR.getMessage(),
                     ErrorCode.INTERNAL_ERROR.getCode(),
                     null);
+        }
+    }
+
+    @DeleteMapping("/delete-book/{bookId}")
+    public ResponseEntity<BaseResponse<String>> deleteBook(@PathVariable("bookId") Integer bookId) {
+        try {
+            // Gọi phương thức DAO để xử lý logic xóa
+            bookDAO.deleteBookWithCategories(bookId);
+
+            return ResponseEntity.ok(
+                    BaseResponse.success("Xóa sách thành công", 200, null, null, null));
+
+        } catch (AppException e) {
+            return ResponseEntity.status(e.getErrorCode().getCode())
+                    .body(BaseResponse.error(
+                            e.getErrorCode().getMessage(),
+                            e.getErrorCode().getCode(),
+                            null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(BaseResponse.error(
+                            ErrorCode.INTERNAL_ERROR.getMessage(),
+                            ErrorCode.INTERNAL_ERROR.getCode(),
+                            null));
         }
     }
 }

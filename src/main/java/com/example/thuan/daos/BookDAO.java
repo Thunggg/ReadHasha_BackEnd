@@ -45,6 +45,8 @@ public interface BookDAO {
 
         BookDTO processBookCreation(BookDTO book, MultipartFile image);
 
-        String handleImageUpload(MultipartFile image, Integer bookId) throws IOException;
+        String handleImageUpload(MultipartFile image, Integer bookId);
+
+        public void deleteBookWithCategories(Integer bookId);
 
 }

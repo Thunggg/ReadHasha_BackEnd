@@ -343,4 +343,24 @@ public class BookDAOImpl implements BookDAO {
             throw new AppException(ErrorCode.INVALID_IMAGE_TYPE);
         }
     }
+
+    @Override
+    @Transactional
+    public void deleteBookWithCategories(Integer bookId) {
+        // Xóa danh mục trước
+        Query deleteCategories = entityManager.createNativeQuery(
+                "DELETE FROM Book_Category WHERE book_id = :bookId");
+        deleteCategories.setParameter("bookId", bookId);
+        int deletedCategories = deleteCategories.executeUpdate();
+
+        // Xóa sách
+        Query deleteBook = entityManager.createNativeQuery(
+                "DELETE FROM Book WHERE bookID = :bookId");
+        deleteBook.setParameter("bookId", bookId);
+        int deletedBooks = deleteBook.executeUpdate();
+
+        if (deletedBooks == 0) {
+            throw new AppException(ErrorCode.BOOK_NOT_FOUND);
+        }
+    }
 }
