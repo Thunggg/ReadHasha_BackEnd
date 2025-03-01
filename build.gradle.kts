@@ -69,6 +69,9 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.mockito:mockito-core:5.3.1")
+
+    //File upload
+    implementation("commons-fileupload:commons-fileupload:1.5")
 }
 
 

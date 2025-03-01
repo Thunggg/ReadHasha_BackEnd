@@ -3,16 +3,41 @@ package com.example.thuan.daos;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.example.thuan.exceptions.AppException;
+import com.example.thuan.models.BookCategoryDTO;
 import com.example.thuan.models.BookDTO;
+import com.example.thuan.ultis.ErrorCode;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+
+import org.springframework.util.StringUtils;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 @Repository
 public class BookDAOImpl implements BookDAO {
+
+    private static final List<String> ALLOWED_IMAGE_EXTENSIONS = Arrays.asList("jpg", "jpeg", "png");
+    private static final List<String> ALLOWED_SORT_FIELDS = Arrays.asList(
+            "b.bookPrice ASC", "b.bookPrice DESC",
+            "b.bookQuantity ASC", "b.bookQuantity DESC",
+            "b.bookID DESC");
+
     EntityManager entityManager;
 
     @Autowired
@@ -22,33 +47,29 @@ public class BookDAOImpl implements BookDAO {
 
     @Override
     @Transactional
-    public void save(BookDTO bookDTO) {
+    public BookDTO save(BookDTO bookDTO) {
         if (bookDTO.getBookID() != null) {
-            entityManager.merge(bookDTO); // Sử dụng merge cho đối tượng đã tồn tại
+            entityManager.merge(bookDTO);
         } else {
-            entityManager.persist(bookDTO); // Sử dụng persist cho đối tượng mới
+            entityManager.persist(bookDTO);
         }
+        entityManager.flush(); // Ensure ID is generated
+        return bookDTO;
     }
 
     @Override
     public BookDTO find(int bookId) {
-        System.out.println("Finding book with ID: " + bookId);
-        BookDTO book = entityManager.find(BookDTO.class, bookId);
-        if (book == null) {
-            System.out.println("Book not found in database with ID: " + bookId);
-        }
-        return book;
+        return entityManager.find(BookDTO.class, bookId);
     }
 
     @Override
     @Transactional
-    public void update(BookDTO book) {
-        BookDTO existingBook = entityManager.find(BookDTO.class, book.getBookID());
-        if (existingBook != null) {
-            entityManager.merge(book); // Chỉ merge nếu thực thể chưa bị xóa
-        } else {
-            throw new IllegalArgumentException("Book does not exist in the database.");
+    public BookDTO update(BookDTO book) {
+        BookDTO existingBook = find(book.getBookID());
+        if (existingBook == null) {
+            throw new IllegalArgumentException("Book with ID " + book.getBookID() + " not found");
         }
+        return entityManager.merge(book);
     }
 
     @Override
@@ -151,9 +172,11 @@ public class BookDAOImpl implements BookDAO {
 
         // Sửa lại cách xử lý sort
         if (sort != null && !sort.isEmpty()) {
-            queryStr += " ORDER BY " + sort; // Sửa tại đây
+            if (!ALLOWED_SORT_FIELDS.contains(sort)) {
+                sort = "b.bookID DESC";
+            }
+            queryStr += " ORDER BY " + sort;
         }
-
         // Tạo query
         Query query = entityManager.createQuery(queryStr, BookDTO.class);
 
@@ -240,5 +263,84 @@ public class BookDAOImpl implements BookDAO {
 
         // Thực thi truy vấn và trả về kết quả
         return (long) query.getSingleResult();
+    }
+
+    @Override
+    @Transactional
+    public BookDTO processBookCreation(BookDTO book, MultipartFile image) {
+
+        // Kiểm tra trùng lặp
+        List<BookDTO> existingBooks = findBooksByTitleAndAuthorAndPublisher(
+                book.getBookTitle(),
+                book.getAuthor(),
+                book.getPublisher());
+
+        if (!existingBooks.isEmpty()) {
+            throw new AppException(ErrorCode.BOOK_ALREADY_EXISTS);
+        }
+
+        // Lưu sách trước để có ID
+        BookDTO savedBook = save(book);
+
+        // Xử lý ảnh sau khi có ID
+        if (image != null && !image.isEmpty()) {
+            String imagePath = handleImageUpload(image, savedBook.getBookID());
+            savedBook.setImage(imagePath);
+            update(savedBook);
+        }
+
+        // Xử lý danh mục
+        if (savedBook.getBookCategories() != null) {
+            for (BookCategoryDTO category : savedBook.getBookCategories()) {
+                if (category.getCatId() == null) {
+                    throw new AppException(ErrorCode.CATEGORY_NOT_FOUND);
+                }
+                category.setBookId(savedBook);
+                entityManager.persist(category);
+            }
+        }
+        return savedBook;
+    }
+
+    @Override
+    public String handleImageUpload(MultipartFile image, Integer bookId) {
+        try {
+            // Validate image extension
+            validateImageExtension(image);
+
+            // Prepare upload directory
+            String uploadDir = System.getProperty("user.dir") + "/uploads/bookImage/";
+            Path uploadPath = Paths.get(uploadDir);
+
+            // Create directory if it doesn't exist
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            // Generate unique file name
+            String extension = StringUtils.getFilenameExtension(image.getOriginalFilename());
+            String fileName = String.format("book_%d_%d.%s", bookId, System.currentTimeMillis(), extension);
+
+            // Save file
+            try (InputStream inputStream = image.getInputStream()) {
+                Path filePath = uploadPath.resolve(fileName);
+                Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            return "/uploads/bookImage/" + fileName;
+
+        } catch (IOException e) {
+            throw new AppException(ErrorCode.FILE_UPLOAD_ERROR);
+        }
+    }
+
+    private void validateImageExtension(MultipartFile image) {
+        String extension = StringUtils.getFilenameExtension(image.getOriginalFilename());
+        if (extension == null) {
+            throw new AppException(ErrorCode.INVALID_IMAGE_TYPE);
+        }
+        if (!ALLOWED_IMAGE_EXTENSIONS.contains(extension.toLowerCase())) {
+            throw new AppException(ErrorCode.INVALID_IMAGE_TYPE);
+        }
     }
 }

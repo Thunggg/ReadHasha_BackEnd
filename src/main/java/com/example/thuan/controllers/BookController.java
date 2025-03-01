@@ -4,29 +4,21 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.thuan.daos.BookDAO;
 import com.example.thuan.exceptions.AppException;
-import com.example.thuan.models.AccountDTO;
 import com.example.thuan.models.BookDTO;
 import com.example.thuan.respone.BaseResponse;
 import com.example.thuan.respone.Meta;
 import com.example.thuan.respone.PaginationResponse;
+import com.example.thuan.ultis.ErrorCode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.sql.Date;
 import java.util.List;
 
 @RestController
@@ -34,6 +26,7 @@ import java.util.List;
 @CrossOrigin(origins = "http://localhost:5173")
 public class BookController {
     private final BookDAO bookDAO;
+    private final ObjectMapper objectMapper;
 
     @RequestMapping(value = "/{id}", method = RequestMethod.OPTIONS)
     public ResponseEntity<Void> handleOptions() {
@@ -44,8 +37,9 @@ public class BookController {
     private EntityManager entityManager;
 
     @Autowired
-    public BookController(BookDAO bookDAO) {
+    public BookController(BookDAO bookDAO, ObjectMapper objectMapper) {
         this.bookDAO = bookDAO;
+        this.objectMapper = objectMapper;
     }
 
     @GetMapping("/")
@@ -125,6 +119,29 @@ public class BookController {
             return BaseResponse.success("Lấy danh sách sách thành công!", 200, pagingRes, null, null);
         } catch (AppException e) {
             return BaseResponse.error(e.getMessage(), e.getErrorCode().getCode(), null);
+        }
+    }
+
+    @PostMapping(path = "/add-book", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public BaseResponse<BookDTO> addBook(
+            @RequestPart("book") String bookJson,
+            @RequestPart(value = "image", required = false) MultipartFile image) {
+
+        try {
+            BookDTO book = objectMapper.readValue(bookJson, BookDTO.class);
+            BookDTO savedBook = bookDAO.processBookCreation(book, image);
+            return BaseResponse.success("Tạo mới sách thành công!", 200, savedBook, null, null);
+
+        } catch (AppException e) {
+            return BaseResponse.error(
+                    e.getMessage(),
+                    e.getErrorCode().getCode(),
+                    null);
+        } catch (Exception e) {
+            return BaseResponse.error(
+                    ErrorCode.INTERNAL_ERROR.getMessage(),
+                    ErrorCode.INTERNAL_ERROR.getCode(),
+                    null);
         }
     }
 }
