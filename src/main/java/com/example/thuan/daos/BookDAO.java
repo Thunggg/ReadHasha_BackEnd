@@ -1,6 +1,7 @@
 package com.example.thuan.daos;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.web.multipart.MultipartFile;
@@ -36,7 +37,9 @@ public interface BookDAO {
                         String isbn,
                         Integer bookStatus,
                         List<Integer> categoryIds,
-                        String sort);
+                        String sort,
+                        BigDecimal minPrice,
+                        BigDecimal maxPrice);
 
         long countBooksWithConditions(String bookTitle,
                         String author,
@@ -44,7 +47,9 @@ public interface BookDAO {
                         Integer publicationYear,
                         String isbn,
                         Integer bookStatus,
-                        List<Integer> categoryIds);
+                        List<Integer> categoryIds,
+                        BigDecimal minPrice,
+                        BigDecimal maxPrice);
 
         BookDTO processBookCreation(BookDTO book, MultipartFile image);
 

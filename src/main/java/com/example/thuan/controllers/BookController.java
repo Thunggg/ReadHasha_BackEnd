@@ -21,6 +21,7 @@ import com.example.thuan.respone.PaginationResponse;
 import com.example.thuan.ultis.ErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -70,7 +71,9 @@ public class BookController {
             @RequestParam(name = "publicationYear", required = false) Integer publicationYear,
             @RequestParam(name = "isbn", required = false) String isbn,
             @RequestParam(name = "bookStatus", required = false) Integer bookStatus,
-            @RequestParam(name = "categoryIds", required = false) String categoryIds, // 🔥 Chuyển sang String
+            @RequestParam(name = "categoryIds", required = false) String categoryIds,
+            @RequestParam(name = "minPrice", required = false) BigDecimal minPrice,
+            @RequestParam(name = "maxPrice", required = false) BigDecimal maxPrice,
             @RequestParam(name = "current", defaultValue = "1") int current,
             @RequestParam(name = "pageSize", defaultValue = "5") int pageSize,
             @RequestParam(name = "sort", required = false) String sort) {
@@ -107,7 +110,7 @@ public class BookController {
 
             // Gọi DAO với các tham số tìm kiếm
             List<BookDTO> data = bookDAO.getBooksWithConditions(offset, pageSize, bookTitle, author, translator,
-                    publicationYear, isbn, bookStatus, categoryIdList, orderBy); // ✅ Truyền categoryIdList
+                    publicationYear, isbn, bookStatus, categoryIdList, orderBy, minPrice, maxPrice);
 
             // Khởi tạo các quan hệ lazy loading
             data.forEach(book -> {
@@ -119,7 +122,7 @@ public class BookController {
 
             // Đếm tổng số bản ghi theo điều kiện
             long total = bookDAO.countBooksWithConditions(bookTitle, author, translator, publicationYear, isbn,
-                    bookStatus, categoryIdList); // ✅ Truyền categoryIdList
+                    bookStatus, categoryIdList, minPrice, maxPrice);
 
             int pages = (pageSize == 0) ? 0 : (int) Math.ceil((double) total / pageSize);
 

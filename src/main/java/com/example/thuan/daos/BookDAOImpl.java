@@ -19,6 +19,7 @@ import com.example.thuan.ultis.ErrorCode;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -167,15 +168,17 @@ public class BookDAOImpl implements BookDAO {
             String isbn,
             Integer bookStatus,
             List<Integer> categoryIds,
-            String sort) {
+            String sort,
+            BigDecimal minPrice,
+            BigDecimal maxPrice) {
 
         // Bước 1: Lấy danh sách ID với điều kiện và phân trang
         List<Integer> bookIds = getFilteredBookIds(offset, pageSize, bookTitle, author, translator,
-                publicationYear, isbn, bookStatus, categoryIds, sort);
+                publicationYear, isbn, bookStatus, categoryIds, sort, minPrice, maxPrice);
 
         // Bước 2: Fetch entity theo danh sách ID
         if (!bookIds.isEmpty()) {
-            return fetchBooksByIds(bookIds, sort);
+            return fetchBooksByIds(bookIds, sort); // Thêm tham số
         }
         return new ArrayList<>();
     }
@@ -189,7 +192,9 @@ public class BookDAOImpl implements BookDAO {
             String isbn,
             Integer bookStatus,
             List<Integer> categoryIds,
-            String sort) {
+            String sort,
+            BigDecimal minPrice, // Thêm tham số
+            BigDecimal maxPrice) {
         // Xây dựng câu truy vấn ID cơ bản
         StringBuilder queryStr = new StringBuilder(
                 "SELECT DISTINCT b.bookID FROM BookDTO b " +
@@ -198,14 +203,16 @@ public class BookDAOImpl implements BookDAO {
                         "WHERE 1=1");
 
         // Thêm điều kiện
-        addConditions(queryStr, bookTitle, author, translator, publicationYear, isbn, bookStatus, categoryIds);
+        addConditions(queryStr, bookTitle, author, translator, publicationYear, isbn, bookStatus, categoryIds, minPrice,
+                maxPrice);
 
         // Xử lý sắp xếp
         handleSorting(queryStr, sort);
 
         // Tạo query
         Query query = entityManager.createQuery(queryStr.toString());
-        setParameters(query, bookTitle, author, translator, publicationYear, isbn, bookStatus, categoryIds);
+        setParameters(query, bookTitle, author, translator, publicationYear, isbn, bookStatus, categoryIds, minPrice,
+                maxPrice);
 
         // Phân trang
         query.setFirstResult(offset);
@@ -215,10 +222,9 @@ public class BookDAOImpl implements BookDAO {
     }
 
     private List<BookDTO> fetchBooksByIds(List<Integer> bookIds, String sort) {
-        // Xây dựng câu truy vấn fetch entity
         String jpql = "SELECT b FROM BookDTO b WHERE b.bookID IN :ids";
 
-        // Thêm sắp xếp theo yêu cầu
+        // BỎ các điều kiện giá ở đây vì đã được áp dụng ở bước 1
         if (sort != null && ALLOWED_SORT_FIELDS.contains(sort)) {
             jpql += " ORDER BY " + convertSortField(sort);
         } else {
@@ -238,7 +244,9 @@ public class BookDAOImpl implements BookDAO {
             Integer publicationYear,
             String isbn,
             Integer bookStatus,
-            List<Integer> categoryIds) {
+            List<Integer> categoryIds,
+            BigDecimal minPrice, // Thêm tham số
+            BigDecimal maxPrice) {
         if (bookTitle != null && !bookTitle.isEmpty()) {
             queryStr.append(" AND LOWER(b.bookTitle) LIKE LOWER(:bookTitle)");
         }
@@ -259,6 +267,12 @@ public class BookDAOImpl implements BookDAO {
         }
         if (categoryIds != null && !categoryIds.isEmpty()) {
             queryStr.append(" AND c.catID IN :categoryIds");
+        }
+        if (minPrice != null) {
+            queryStr.append(" AND b.bookPrice >= :minPrice");
+        }
+        if (maxPrice != null) {
+            queryStr.append(" AND b.bookPrice <= :maxPrice");
         }
     }
 
@@ -282,7 +296,9 @@ public class BookDAOImpl implements BookDAO {
             Integer publicationYear,
             String isbn,
             Integer bookStatus,
-            List<Integer> categoryIds) {
+            List<Integer> categoryIds,
+            BigDecimal minPrice,
+            BigDecimal maxPrice) {
         if (bookTitle != null && !bookTitle.isEmpty()) {
             query.setParameter("bookTitle", "%" + bookTitle + "%");
         }
@@ -304,6 +320,12 @@ public class BookDAOImpl implements BookDAO {
         if (categoryIds != null && !categoryIds.isEmpty()) {
             query.setParameter("categoryIds", categoryIds);
         }
+        if (minPrice != null) {
+            query.setParameter("minPrice", minPrice);
+        }
+        if (maxPrice != null) {
+            query.setParameter("maxPrice", maxPrice);
+        }
     }
 
     @Override
@@ -313,7 +335,9 @@ public class BookDAOImpl implements BookDAO {
             Integer publicationYear,
             String isbn,
             Integer bookStatus,
-            List<Integer> categoryIds) {
+            List<Integer> categoryIds,
+            BigDecimal minPrice,
+            BigDecimal maxPrice) {
 
         StringBuilder queryStr = new StringBuilder(
                 "SELECT COUNT(DISTINCT b.bookID) FROM BookDTO b " +
@@ -340,9 +364,14 @@ public class BookDAOImpl implements BookDAO {
         if (bookStatus != null) {
             queryStr.append(" AND b.bookStatus = :bookStatus");
         }
-        // FIX: Sửa thành c.catID và thêm vào queryStr trước khi tạo query
         if (categoryIds != null && !categoryIds.isEmpty()) {
             queryStr.append(" AND c.catID IN :categoryIds");
+        }
+        if (minPrice != null) {
+            queryStr.append(" AND b.bookPrice >= :minPrice");
+        }
+        if (maxPrice != null) {
+            queryStr.append(" AND b.bookPrice <= :maxPrice");
         }
 
         // Tạo query
@@ -369,6 +398,12 @@ public class BookDAOImpl implements BookDAO {
         }
         if (categoryIds != null && !categoryIds.isEmpty()) {
             query.setParameter("categoryIds", categoryIds); // Đúng tên tham số
+        }
+        if (minPrice != null) {
+            query.setParameter("minPrice", minPrice);
+        }
+        if (maxPrice != null) {
+            query.setParameter("maxPrice", maxPrice);
         }
 
         return (long) query.getSingleResult();
