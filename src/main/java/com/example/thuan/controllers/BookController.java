@@ -15,12 +15,16 @@ import com.example.thuan.daos.BookDAO;
 import com.example.thuan.exceptions.AppException;
 import com.example.thuan.models.BookDTO;
 import com.example.thuan.respone.BaseResponse;
+import com.example.thuan.respone.BookResponse;
 import com.example.thuan.respone.Meta;
 import com.example.thuan.respone.PaginationResponse;
 import com.example.thuan.ultis.ErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("api/v1/books")
@@ -66,11 +70,20 @@ public class BookController {
             @RequestParam(name = "publicationYear", required = false) Integer publicationYear,
             @RequestParam(name = "isbn", required = false) String isbn,
             @RequestParam(name = "bookStatus", required = false) Integer bookStatus,
+            @RequestParam(name = "categoryIds", required = false) String categoryIds, // 🔥 Chuyển sang String
             @RequestParam(name = "current", defaultValue = "1") int current,
             @RequestParam(name = "pageSize", defaultValue = "5") int pageSize,
             @RequestParam(name = "sort", required = false) String sort) {
 
         try {
+            // ✅ Chuyển categoryIds từ String => List<Integer>
+            List<Integer> categoryIdList = new ArrayList<>();
+            if (categoryIds != null && !categoryIds.isEmpty()) {
+                categoryIdList = Arrays.stream(categoryIds.split(",")) // Tách chuỗi bằng dấu ","
+                        .map(Integer::parseInt) // Convert từng phần tử thành Integer
+                        .collect(Collectors.toList());
+            }
+
             // Xử lý sắp xếp theo Price và Quantity
             String orderBy = "b.bookID DESC"; // Mặc định sắp xếp theo bookID giảm dần
             if (sort != null) {
@@ -94,7 +107,7 @@ public class BookController {
 
             // Gọi DAO với các tham số tìm kiếm
             List<BookDTO> data = bookDAO.getBooksWithConditions(offset, pageSize, bookTitle, author, translator,
-                    publicationYear, isbn, bookStatus, orderBy);
+                    publicationYear, isbn, bookStatus, categoryIdList, orderBy); // ✅ Truyền categoryIdList
 
             // Khởi tạo các quan hệ lazy loading
             data.forEach(book -> {
@@ -106,7 +119,7 @@ public class BookController {
 
             // Đếm tổng số bản ghi theo điều kiện
             long total = bookDAO.countBooksWithConditions(bookTitle, author, translator, publicationYear, isbn,
-                    bookStatus);
+                    bookStatus, categoryIdList); // ✅ Truyền categoryIdList
 
             int pages = (pageSize == 0) ? 0 : (int) Math.ceil((double) total / pageSize);
 
@@ -193,4 +206,31 @@ public class BookController {
         }
     }
 
+    @GetMapping("/FilterBook")
+    public BaseResponse<BookResponse> getBooksByCategory(@RequestParam(name = "categoryIds") String categoryIds) {
+        try {
+            List<Integer> ids = new ArrayList<>();
+            if (categoryIds != null) {
+                String[] parts = categoryIds.split(",");
+                for (String part : parts) {
+                    ids.add(Integer.parseInt(part.trim()));
+                }
+            }
+
+            List<BookDTO> books = bookDAO.findBooksByCategoryIds(ids);
+
+            BookResponse response = new BookResponse();
+            response.setBooks(books.toArray(new BookDTO[0]));
+
+            return BaseResponse.success(
+                    "Successfully retrieved books",
+                    200,
+                    response,
+                    null,
+                    null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return BaseResponse.error("Failed to retrieve books: " + e.getMessage(), 500, null);
+        }
+    }
 }

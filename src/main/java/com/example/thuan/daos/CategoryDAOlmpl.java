@@ -53,10 +53,27 @@ public class CategoryDAOlmpl implements CategoryDAO {
 
     @Override
     public List<CategoryDTO> searchByName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            return findAll(); // Nếu không có tên, trả về toàn bộ danh mục
+        }
         TypedQuery<CategoryDTO> query = entityManager.createQuery(
                 "SELECT c FROM CategoryDTO c WHERE LOWER(c.catName) LIKE LOWER(:name)",
                 CategoryDTO.class);
-        query.setParameter("name", "%" + name.trim() + "%"); // Trim để loại bỏ khoảng trắng thừa
+        query.setParameter("name", "%" + name.trim() + "%");
         return query.getResultList();
     }
+
+    @Override
+    public List<CategoryDTO> searchByCategoryIds(List<Integer> categoryIds) {
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            return findAll(); // Nếu không có ID nào, trả về tất cả danh mục
+        }
+
+        TypedQuery<CategoryDTO> query = entityManager.createQuery(
+                "SELECT c FROM CategoryDTO c WHERE c.catID IN :categoryIds",
+                CategoryDTO.class);
+        query.setParameter("categoryIds", categoryIds);
+        return query.getResultList();
+    }
+
 }

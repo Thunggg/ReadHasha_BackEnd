@@ -166,41 +166,123 @@ public class BookDAOImpl implements BookDAO {
             Integer publicationYear,
             String isbn,
             Integer bookStatus,
+            List<Integer> categoryIds,
             String sort) {
-        // Tạo câu truy vấn cơ bản
-        String queryStr = "SELECT b FROM BookDTO b WHERE 1 = 1";
 
-        // Thêm điều kiện tìm kiếm
+        // Bước 1: Lấy danh sách ID với điều kiện và phân trang
+        List<Integer> bookIds = getFilteredBookIds(offset, pageSize, bookTitle, author, translator,
+                publicationYear, isbn, bookStatus, categoryIds, sort);
+
+        // Bước 2: Fetch entity theo danh sách ID
+        if (!bookIds.isEmpty()) {
+            return fetchBooksByIds(bookIds, sort);
+        }
+        return new ArrayList<>();
+    }
+
+    private List<Integer> getFilteredBookIds(int offset,
+            int pageSize,
+            String bookTitle,
+            String author,
+            String translator,
+            Integer publicationYear,
+            String isbn,
+            Integer bookStatus,
+            List<Integer> categoryIds,
+            String sort) {
+        // Xây dựng câu truy vấn ID cơ bản
+        StringBuilder queryStr = new StringBuilder(
+                "SELECT DISTINCT b.bookID FROM BookDTO b " +
+                        "JOIN b.bookCategories bc " +
+                        "JOIN bc.catId c " +
+                        "WHERE 1=1");
+
+        // Thêm điều kiện
+        addConditions(queryStr, bookTitle, author, translator, publicationYear, isbn, bookStatus, categoryIds);
+
+        // Xử lý sắp xếp
+        handleSorting(queryStr, sort);
+
+        // Tạo query
+        Query query = entityManager.createQuery(queryStr.toString());
+        setParameters(query, bookTitle, author, translator, publicationYear, isbn, bookStatus, categoryIds);
+
+        // Phân trang
+        query.setFirstResult(offset);
+        query.setMaxResults(pageSize);
+
+        return query.getResultList();
+    }
+
+    private List<BookDTO> fetchBooksByIds(List<Integer> bookIds, String sort) {
+        // Xây dựng câu truy vấn fetch entity
+        String jpql = "SELECT b FROM BookDTO b WHERE b.bookID IN :ids";
+
+        // Thêm sắp xếp theo yêu cầu
+        if (sort != null && ALLOWED_SORT_FIELDS.contains(sort)) {
+            jpql += " ORDER BY " + convertSortField(sort);
+        } else {
+            jpql += " ORDER BY b.bookID DESC";
+        }
+
+        return entityManager.createQuery(jpql, BookDTO.class)
+                .setParameter("ids", bookIds)
+                .getResultList();
+    }
+
+    // Các phương thức helper
+    private void addConditions(StringBuilder queryStr,
+            String bookTitle,
+            String author,
+            String translator,
+            Integer publicationYear,
+            String isbn,
+            Integer bookStatus,
+            List<Integer> categoryIds) {
         if (bookTitle != null && !bookTitle.isEmpty()) {
-            queryStr += " AND LOWER(b.bookTitle) LIKE LOWER(:bookTitle)";
+            queryStr.append(" AND LOWER(b.bookTitle) LIKE LOWER(:bookTitle)");
         }
         if (author != null && !author.isEmpty()) {
-            queryStr += " AND LOWER(b.author) LIKE LOWER(:author)";
+            queryStr.append(" AND LOWER(b.author) LIKE LOWER(:author)");
         }
         if (translator != null && !translator.isEmpty()) {
-            queryStr += " AND LOWER(b.translator) LIKE LOWER(:translator)";
+            queryStr.append(" AND LOWER(b.translator) LIKE LOWER(:translator)");
         }
         if (publicationYear != null) {
-            queryStr += " AND b.publicationYear = :publicationYear";
+            queryStr.append(" AND b.publicationYear = :publicationYear");
         }
         if (isbn != null && !isbn.isEmpty()) {
-            queryStr += " AND b.isbn = :isbn";
+            queryStr.append(" AND b.isbn = :isbn");
         }
         if (bookStatus != null) {
-            queryStr += " AND b.bookStatus = :bookStatus";
+            queryStr.append(" AND b.bookStatus = :bookStatus");
         }
-
-        // Sửa lại cách xử lý sort
-        if (sort != null && !sort.isEmpty()) {
-            if (!ALLOWED_SORT_FIELDS.contains(sort)) {
-                sort = "b.bookID DESC";
-            }
-            queryStr += " ORDER BY " + sort;
+        if (categoryIds != null && !categoryIds.isEmpty()) {
+            queryStr.append(" AND c.catID IN :categoryIds");
         }
-        // Tạo query
-        Query query = entityManager.createQuery(queryStr, BookDTO.class);
+    }
 
-        // Đặt tham số
+    private void handleSorting(StringBuilder queryStr, String sort) {
+        if (sort != null && ALLOWED_SORT_FIELDS.contains(sort)) {
+            queryStr.append(" ORDER BY ").append(convertSortField(sort));
+        } else {
+            queryStr.append(" ORDER BY b.bookID DESC");
+        }
+    }
+
+    private String convertSortField(String sort) {
+        // Chuyển đổi tên sort từ entity property sang field trong HQL
+        return sort.replace("b.", ""); // Ví dụ: "bookPrice DESC" -> "b.bookPrice DESC"
+    }
+
+    private void setParameters(Query query,
+            String bookTitle,
+            String author,
+            String translator,
+            Integer publicationYear,
+            String isbn,
+            Integer bookStatus,
+            List<Integer> categoryIds) {
         if (bookTitle != null && !bookTitle.isEmpty()) {
             query.setParameter("bookTitle", "%" + bookTitle + "%");
         }
@@ -219,13 +301,9 @@ public class BookDAOImpl implements BookDAO {
         if (bookStatus != null) {
             query.setParameter("bookStatus", bookStatus);
         }
-
-        // Phân trang
-        query.setFirstResult(offset);
-        query.setMaxResults(pageSize);
-
-        // Thực thi truy vấn
-        return query.getResultList();
+        if (categoryIds != null && !categoryIds.isEmpty()) {
+            query.setParameter("categoryIds", categoryIds);
+        }
     }
 
     @Override
@@ -234,34 +312,43 @@ public class BookDAOImpl implements BookDAO {
             String translator,
             Integer publicationYear,
             String isbn,
-            Integer bookStatus) {
-        // Tạo câu truy vấn đếm
-        String queryStr = "SELECT COUNT(b) FROM BookDTO b WHERE 1 = 1";
+            Integer bookStatus,
+            List<Integer> categoryIds) {
 
-        // Thêm điều kiện tìm kiếm
+        StringBuilder queryStr = new StringBuilder(
+                "SELECT COUNT(DISTINCT b.bookID) FROM BookDTO b " +
+                        "JOIN b.bookCategories bc " +
+                        "JOIN bc.catId c " + // Alias 'c' đại diện cho CategoryDTO
+                        "WHERE 1=1");
+
+        // Thêm điều kiện (FIX: dùng c.catID thay vì bc.catId.catID)
         if (bookTitle != null && !bookTitle.isEmpty()) {
-            queryStr += " AND LOWER(b.bookTitle) LIKE LOWER(:bookTitle)";
+            queryStr.append(" AND LOWER(b.bookTitle) LIKE LOWER(:bookTitle)");
         }
         if (author != null && !author.isEmpty()) {
-            queryStr += " AND LOWER(b.author) LIKE LOWER(:author)";
+            queryStr.append(" AND LOWER(b.author) LIKE LOWER(:author)");
         }
         if (translator != null && !translator.isEmpty()) {
-            queryStr += " AND LOWER(b.translator) LIKE LOWER(:translator)";
+            queryStr.append(" AND LOWER(b.translator) LIKE LOWER(:translator)");
         }
         if (publicationYear != null) {
-            queryStr += " AND b.publicationYear = :publicationYear";
+            queryStr.append(" AND b.publicationYear = :publicationYear");
         }
         if (isbn != null && !isbn.isEmpty()) {
-            queryStr += " AND b.isbn = :isbn";
+            queryStr.append(" AND b.isbn = :isbn");
         }
         if (bookStatus != null) {
-            queryStr += " AND b.bookStatus = :bookStatus";
+            queryStr.append(" AND b.bookStatus = :bookStatus");
+        }
+        // FIX: Sửa thành c.catID và thêm vào queryStr trước khi tạo query
+        if (categoryIds != null && !categoryIds.isEmpty()) {
+            queryStr.append(" AND c.catID IN :categoryIds");
         }
 
         // Tạo query
-        Query query = entityManager.createQuery(queryStr);
+        Query query = entityManager.createQuery(queryStr.toString());
 
-        // Đặt tham số
+        // Đặt tham số (FIX: chỉ set 1 lần cho categoryIds)
         if (bookTitle != null && !bookTitle.isEmpty()) {
             query.setParameter("bookTitle", "%" + bookTitle + "%");
         }
@@ -280,8 +367,10 @@ public class BookDAOImpl implements BookDAO {
         if (bookStatus != null) {
             query.setParameter("bookStatus", bookStatus);
         }
+        if (categoryIds != null && !categoryIds.isEmpty()) {
+            query.setParameter("categoryIds", categoryIds); // Đúng tên tham số
+        }
 
-        // Thực thi truy vấn và trả về kết quả
         return (long) query.getSingleResult();
     }
 
@@ -449,5 +538,29 @@ public class BookDAOImpl implements BookDAO {
             e.printStackTrace();
             throw e;
         }
+    }
+
+    public List<BookDTO> findBooksByCategory(int catID) {
+        TypedQuery<BookDTO> query = entityManager.createQuery(
+                "SELECT b FROM BookDTO b JOIN b.bookCategories bc WHERE bc.catId.catID = :catID", BookDTO.class);
+        query.setParameter("catID", catID);
+
+        return query.getResultList();
+    }
+
+    public List<BookDTO> findBooksByCategoryIds(List<Integer> categoryIds) {
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        TypedQuery<BookDTO> query = entityManager.createQuery(
+                "SELECT b FROM BookDTO b " +
+                        "JOIN b.bookCategories bc " +
+                        "WHERE bc.catId.catID IN :cat_id",
+                BookDTO.class);
+
+        query.setParameter("cat_id", categoryIds);
+
+        return query.getResultList();
     }
 }

@@ -1,5 +1,6 @@
 package com.example.thuan.respone;
 
+import com.example.thuan.models.BookDTO;
 import com.example.thuan.models.CategoryDTO;
 
 import lombok.*;
@@ -10,6 +11,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CategoryResponse {
-    private CategoryDTO categories[];
+
+public class BookResponse {
+    private BookDTO Books[];
 }

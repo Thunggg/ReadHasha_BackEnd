@@ -8,6 +8,7 @@ import lombok.*;
 import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -47,11 +48,11 @@ public class BookDTO implements Serializable {
     private String isbn;
 
     @Lob
-    @Column(name = "image")
+    @Column(name = "image", columnDefinition = "varchar(MAX)")
     private String image;
 
     @Lob
-    @Column(name = "bookdescription")
+    @Column(name = "bookdescription", columnDefinition = "nvarchar(MAX)")
     private String bookDescription;
 
     @Column(name = "hardcover")
@@ -81,9 +82,9 @@ public class BookDTO implements Serializable {
     // // tránh vòng lặp
     // private List<ImportStockDetailDTO> importStockDetailList;
 
-    @OneToMany(mappedBy = "bookId", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "bookId", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
-    private List<BookCategoryDTO> bookCategories;
+    private List<BookCategoryDTO> bookCategories = new ArrayList<>();
 
     // @OneToMany(mappedBy = "bookID",cascade = CascadeType.ALL, fetch =
     // FetchType.EAGER)

@@ -35,6 +35,7 @@ public interface BookDAO {
                         Integer publicationYear,
                         String isbn,
                         Integer bookStatus,
+                        List<Integer> categoryIds,
                         String sort);
 
         long countBooksWithConditions(String bookTitle,
@@ -42,7 +43,8 @@ public interface BookDAO {
                         String translator,
                         Integer publicationYear,
                         String isbn,
-                        Integer bookStatus);
+                        Integer bookStatus,
+                        List<Integer> categoryIds);
 
         BookDTO processBookCreation(BookDTO book, MultipartFile image);
 
@@ -51,4 +53,8 @@ public interface BookDAO {
         public void deleteBookWithCategories(Integer bookId);
 
         BookDTO processBookUpdate(BookDTO book, MultipartFile image);
+
+        public List<BookDTO> findBooksByCategory(int catID);
+
+        public List<BookDTO> findBooksByCategoryIds(List<Integer> categoryIds);
 }

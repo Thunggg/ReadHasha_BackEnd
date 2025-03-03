@@ -15,4 +15,6 @@ public interface CategoryDAO {
 
     // Thêm phương thức này để tìm kiếm category theo tên
     List<CategoryDTO> searchByName(String name);
+
+    public List<CategoryDTO> searchByCategoryIds(List<Integer> categoryIds);
 }

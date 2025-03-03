@@ -11,7 +11,11 @@ import com.example.thuan.models.CategoryDTO;
 import com.example.thuan.respone.BaseResponse;
 import com.example.thuan.respone.CategoryResponse;
 
+import io.jsonwebtoken.lang.Arrays;
+
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @EnableWebSecurity
 @RestController
@@ -46,4 +50,33 @@ public class CategoryController {
                     null);
         }
     }
+
+    @GetMapping("/filter")
+    public BaseResponse<CategoryResponse> filterCategories(@RequestParam(required = false) String categoryIds) {
+        try {
+            List<Integer> ids = new ArrayList<>();
+            if (categoryIds != null) {
+                String[] parts = categoryIds.split(",");
+                for (String part : parts) {
+                    ids.add(Integer.parseInt(part.trim()));
+                }
+            }
+
+            List<CategoryDTO> categories = categoryDAO.searchByCategoryIds(ids);
+
+            CategoryResponse response = new CategoryResponse();
+            response.setCategories(categories.toArray(new CategoryDTO[0]));
+
+            return BaseResponse.success(
+                    "Successfully filtered categories",
+                    200,
+                    response,
+                    null,
+                    null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return BaseResponse.error("Failed to filter categories: " + e.getMessage(), 500, null);
+        }
+    }
+
 }
