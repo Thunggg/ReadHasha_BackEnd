@@ -74,6 +74,7 @@ public class BookController {
             @RequestParam(name = "categoryIds", required = false) String categoryIds,
             @RequestParam(name = "minPrice", required = false) BigDecimal minPrice,
             @RequestParam(name = "maxPrice", required = false) BigDecimal maxPrice,
+            @RequestParam(name = "mainText", required = false) String mainText,
             @RequestParam(name = "current", defaultValue = "1") int current,
             @RequestParam(name = "pageSize", defaultValue = "5") int pageSize,
             @RequestParam(name = "sort", required = false) String sort) {
@@ -110,7 +111,7 @@ public class BookController {
 
             // Gọi DAO với các tham số tìm kiếm
             List<BookDTO> data = bookDAO.getBooksWithConditions(offset, pageSize, bookTitle, author, translator,
-                    publicationYear, isbn, bookStatus, categoryIdList, orderBy, minPrice, maxPrice);
+                    publicationYear, isbn, bookStatus, categoryIdList, orderBy, minPrice, maxPrice, mainText);
 
             // Khởi tạo các quan hệ lazy loading
             data.forEach(book -> {
@@ -122,7 +123,7 @@ public class BookController {
 
             // Đếm tổng số bản ghi theo điều kiện
             long total = bookDAO.countBooksWithConditions(bookTitle, author, translator, publicationYear, isbn,
-                    bookStatus, categoryIdList, minPrice, maxPrice);
+                    bookStatus, categoryIdList, minPrice, maxPrice, mainText);
 
             int pages = (pageSize == 0) ? 0 : (int) Math.ceil((double) total / pageSize);
 

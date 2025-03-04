@@ -39,7 +39,8 @@ public interface BookDAO {
                         List<Integer> categoryIds,
                         String sort,
                         BigDecimal minPrice,
-                        BigDecimal maxPrice);
+                        BigDecimal maxPrice,
+                        String mainText);
 
         long countBooksWithConditions(String bookTitle,
                         String author,
@@ -49,7 +50,8 @@ public interface BookDAO {
                         Integer bookStatus,
                         List<Integer> categoryIds,
                         BigDecimal minPrice,
-                        BigDecimal maxPrice);
+                        BigDecimal maxPrice,
+                        String mainText);
 
         BookDTO processBookCreation(BookDTO book, MultipartFile image);
 

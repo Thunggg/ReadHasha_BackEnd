@@ -170,11 +170,12 @@ public class BookDAOImpl implements BookDAO {
             List<Integer> categoryIds,
             String sort,
             BigDecimal minPrice,
-            BigDecimal maxPrice) {
+            BigDecimal maxPrice,
+            String mainText) {
 
         // Bước 1: Lấy danh sách ID với điều kiện và phân trang
         List<Integer> bookIds = getFilteredBookIds(offset, pageSize, bookTitle, author, translator,
-                publicationYear, isbn, bookStatus, categoryIds, sort, minPrice, maxPrice);
+                publicationYear, isbn, bookStatus, categoryIds, sort, minPrice, maxPrice, mainText);
 
         // Bước 2: Fetch entity theo danh sách ID
         if (!bookIds.isEmpty()) {
@@ -194,7 +195,8 @@ public class BookDAOImpl implements BookDAO {
             List<Integer> categoryIds,
             String sort,
             BigDecimal minPrice, // Thêm tham số
-            BigDecimal maxPrice) {
+            BigDecimal maxPrice,
+            String mainText) {
         // Xây dựng câu truy vấn ID cơ bản
         StringBuilder queryStr = new StringBuilder(
                 "SELECT DISTINCT b.bookID FROM BookDTO b " +
@@ -204,7 +206,7 @@ public class BookDAOImpl implements BookDAO {
 
         // Thêm điều kiện
         addConditions(queryStr, bookTitle, author, translator, publicationYear, isbn, bookStatus, categoryIds, minPrice,
-                maxPrice);
+                maxPrice, mainText);
 
         // Xử lý sắp xếp
         handleSorting(queryStr, sort);
@@ -212,7 +214,7 @@ public class BookDAOImpl implements BookDAO {
         // Tạo query
         Query query = entityManager.createQuery(queryStr.toString());
         setParameters(query, bookTitle, author, translator, publicationYear, isbn, bookStatus, categoryIds, minPrice,
-                maxPrice);
+                maxPrice, mainText);
 
         // Phân trang
         query.setFirstResult(offset);
@@ -246,7 +248,8 @@ public class BookDAOImpl implements BookDAO {
             Integer bookStatus,
             List<Integer> categoryIds,
             BigDecimal minPrice, // Thêm tham số
-            BigDecimal maxPrice) {
+            BigDecimal maxPrice,
+            String mainText) {
         if (bookTitle != null && !bookTitle.isEmpty()) {
             queryStr.append(" AND LOWER(b.bookTitle) LIKE LOWER(:bookTitle)");
         }
@@ -274,6 +277,9 @@ public class BookDAOImpl implements BookDAO {
         if (maxPrice != null) {
             queryStr.append(" AND b.bookPrice <= :maxPrice");
         }
+        if (mainText != null && !mainText.isEmpty()) {
+            queryStr.append(" AND LOWER(b.bookTitle) LIKE LOWER(:mainText)");
+        }
     }
 
     private void handleSorting(StringBuilder queryStr, String sort) {
@@ -298,7 +304,8 @@ public class BookDAOImpl implements BookDAO {
             Integer bookStatus,
             List<Integer> categoryIds,
             BigDecimal minPrice,
-            BigDecimal maxPrice) {
+            BigDecimal maxPrice,
+            String mainText) {
         if (bookTitle != null && !bookTitle.isEmpty()) {
             query.setParameter("bookTitle", "%" + bookTitle + "%");
         }
@@ -326,6 +333,9 @@ public class BookDAOImpl implements BookDAO {
         if (maxPrice != null) {
             query.setParameter("maxPrice", maxPrice);
         }
+        if (mainText != null && !mainText.isEmpty()) {
+            query.setParameter("mainText", "%" + mainText + "%");
+        }
     }
 
     @Override
@@ -337,7 +347,8 @@ public class BookDAOImpl implements BookDAO {
             Integer bookStatus,
             List<Integer> categoryIds,
             BigDecimal minPrice,
-            BigDecimal maxPrice) {
+            BigDecimal maxPrice,
+            String mainText) {
 
         StringBuilder queryStr = new StringBuilder(
                 "SELECT COUNT(DISTINCT b.bookID) FROM BookDTO b " +
@@ -373,6 +384,9 @@ public class BookDAOImpl implements BookDAO {
         if (maxPrice != null) {
             queryStr.append(" AND b.bookPrice <= :maxPrice");
         }
+        if (mainText != null && !mainText.isEmpty()) {
+            queryStr.append(" AND LOWER(b.bookTitle) LIKE LOWER(:mainText)");
+        }
 
         // Tạo query
         Query query = entityManager.createQuery(queryStr.toString());
@@ -404,6 +418,9 @@ public class BookDAOImpl implements BookDAO {
         }
         if (maxPrice != null) {
             query.setParameter("maxPrice", maxPrice);
+        }
+        if (mainText != null && !mainText.isEmpty()) {
+            query.setParameter("mainText", "%" + mainText + "%");
         }
 
         return (long) query.getSingleResult();
