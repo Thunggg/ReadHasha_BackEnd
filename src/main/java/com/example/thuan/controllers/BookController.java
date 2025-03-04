@@ -237,4 +237,40 @@ public class BookController {
             return BaseResponse.error("Failed to retrieve books: " + e.getMessage(), 500, null);
         }
     }
+
+    @GetMapping("/{id}")
+    @Transactional
+    public ResponseEntity<BaseResponse<BookDTO>> getBookById(@PathVariable Integer id) {
+        try {
+            BookDTO book = bookDAO.find(id);
+
+            if (book == null) {
+                throw new AppException(ErrorCode.BOOK_NOT_FOUND);
+            }
+
+            // Khởi tạo các quan hệ lazy loading
+            Hibernate.initialize(book.getBookCategories());
+            if (book.getBookCategories() != null) {
+                book.getBookCategories().forEach(bookCategory -> {
+                    Hibernate.initialize(bookCategory.getCatId());
+                });
+            }
+
+            return ResponseEntity.ok(
+                    BaseResponse.success("Lấy thông tin sách thành công", 200, book, null, null));
+
+        } catch (AppException e) {
+            return ResponseEntity.status(e.getErrorCode().getCode())
+                    .body(BaseResponse.error(
+                            e.getMessage(),
+                            e.getErrorCode().getCode(),
+                            null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(BaseResponse.error(
+                            ErrorCode.INTERNAL_ERROR.getMessage(),
+                            ErrorCode.INTERNAL_ERROR.getCode(),
+                            null));
+        }
+    }
 }
