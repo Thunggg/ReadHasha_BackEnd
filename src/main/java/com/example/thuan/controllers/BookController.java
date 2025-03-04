@@ -240,7 +240,7 @@ public class BookController {
 
     @GetMapping("/{id}")
     @Transactional
-    public ResponseEntity<BaseResponse<BookDTO>> getBookById(@PathVariable Integer id) {
+    public ResponseEntity<BaseResponse<BookDTO>> getBookById(@PathVariable("id") Integer id) {
         try {
             BookDTO book = bookDAO.find(id);
 
