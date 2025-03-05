@@ -23,6 +23,9 @@ public class BookDTO implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
+    @Transient
+    private Long totalSold;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
@@ -73,9 +76,9 @@ public class BookDTO implements Serializable {
     @Column(name = "bookstatus")
     private Integer bookStatus;
 
-    // @OneToMany(mappedBy = "bookID", fetch = FetchType.EAGER)
-    // @JsonIgnore
-    // private List<OrderDetailDTO> orderDetailList;
+    @OneToMany(mappedBy = "bookID", fetch = FetchType.EAGER)
+    @JsonIgnore
+    private List<OrderDetailDTO> orderDetailList;
 
     // @OneToMany(mappedBy = "bookID", fetch = FetchType.LAZY)
     // @JsonIgnore // Bỏ qua importStockDetailCollection trong serialization để

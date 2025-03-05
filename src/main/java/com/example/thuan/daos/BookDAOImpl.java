@@ -24,6 +24,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.util.StringUtils;
 import java.nio.file.Files;
@@ -37,7 +38,7 @@ public class BookDAOImpl implements BookDAO {
     private static final List<String> ALLOWED_SORT_FIELDS = Arrays.asList(
             "b.bookPrice ASC", "b.bookPrice DESC",
             "b.bookQuantity ASC", "b.bookQuantity DESC",
-            "b.bookID DESC");
+            "b.bookID DESC", "b.publicationYear DESC", "sold DESC");
 
     EntityManager entityManager;
 
@@ -194,48 +195,88 @@ public class BookDAOImpl implements BookDAO {
             Integer bookStatus,
             List<Integer> categoryIds,
             String sort,
-            BigDecimal minPrice, // Thêm tham số
+            BigDecimal minPrice,
             BigDecimal maxPrice,
             String mainText) {
-        // Xây dựng câu truy vấn ID cơ bản
-        StringBuilder queryStr = new StringBuilder(
-                "SELECT DISTINCT b.bookID FROM BookDTO b " +
-                        "JOIN b.bookCategories bc " +
-                        "JOIN bc.catId c " +
-                        "WHERE 1=1");
 
-        // Thêm điều kiện
+        StringBuilder queryStr = new StringBuilder();
+
+        if ("sold ASC".equals(sort) || "sold DESC".equals(sort)) {
+            // Truy vấn cho sắp xếp theo sold: chọn thêm biểu thức tổng số bán (totalSold)
+            queryStr.append("SELECT DISTINCT b.bookID, ");
+            queryStr.append(
+                    "       (SELECT COALESCE(SUM(od.quantity), 0) FROM OrderDetailDTO od WHERE od.bookID.bookID = b.bookID) AS totalSold ");
+            queryStr.append("FROM BookDTO b ");
+            queryStr.append("JOIN b.bookCategories bc JOIN bc.catId c ");
+            queryStr.append("WHERE 1=1");
+        } else {
+            queryStr.append("SELECT DISTINCT b.bookID, b.bookPrice, b.publicationYear FROM BookDTO b ");
+            queryStr.append("JOIN b.bookCategories bc JOIN bc.catId c ");
+            queryStr.append("WHERE 1=1");
+        }
+
+        // Thêm các điều kiện lọc
         addConditions(queryStr, bookTitle, author, translator, publicationYear, isbn, bookStatus, categoryIds, minPrice,
                 maxPrice, mainText);
 
         // Xử lý sắp xếp
-        handleSorting(queryStr, sort);
+        if ("sold ASC".equals(sort)) {
+            queryStr.append(" ORDER BY totalSold ASC");
+        } else if ("sold DESC".equals(sort)) {
+            queryStr.append(" ORDER BY totalSold DESC");
+        } else {
+            handleSorting(queryStr, sort);
+        }
 
-        // Tạo query
         Query query = entityManager.createQuery(queryStr.toString());
         setParameters(query, bookTitle, author, translator, publicationYear, isbn, bookStatus, categoryIds, minPrice,
                 maxPrice, mainText);
 
-        // Phân trang
         query.setFirstResult(offset);
         query.setMaxResults(pageSize);
 
-        return query.getResultList();
+        // Lấy kết quả và chỉ lấy bookID (cột đầu tiên)
+        List<Object[]> resultList = query.getResultList();
+        return resultList.stream()
+                .map(arr -> (Integer) arr[0])
+                .collect(Collectors.toList());
     }
 
     private List<BookDTO> fetchBooksByIds(List<Integer> bookIds, String sort) {
-        String jpql = "SELECT b FROM BookDTO b WHERE b.bookID IN :ids";
-
-        // BỎ các điều kiện giá ở đây vì đã được áp dụng ở bước 1
-        if (sort != null && ALLOWED_SORT_FIELDS.contains(sort)) {
-            jpql += " ORDER BY " + convertSortField(sort);
+        String jpql;
+        if ("sold ASC".equals(sort) || "sold DESC".equals(sort)) {
+            String order = "sold ASC".equals(sort) ? "ASC" : "DESC";
+            jpql = "SELECT b FROM BookDTO b WHERE b.bookID IN :ids " +
+                    "ORDER BY (SELECT COALESCE(SUM(od.quantity), 0) " +
+                    "         FROM OrderDetailDTO od " +
+                    "         WHERE od.bookID.bookID = b.bookID) " + order;
         } else {
-            jpql += " ORDER BY b.bookID DESC";
+            jpql = "SELECT b FROM BookDTO b WHERE b.bookID IN :ids";
+            if (sort != null && ALLOWED_SORT_FIELDS.contains(sort)) {
+                jpql += " ORDER BY " + convertSortField(sort);
+            } else {
+                jpql += " ORDER BY b.bookID DESC";
+            }
         }
-
-        return entityManager.createQuery(jpql, BookDTO.class)
+        List<BookDTO> books = entityManager.createQuery(jpql, BookDTO.class)
                 .setParameter("ids", bookIds)
                 .getResultList();
+
+        // Tính tổng số lượng bán (totalSold) từ orderDetailList và gán vào đối tượng
+        // BookDTO
+        for (BookDTO book : books) {
+            if (book.getOrderDetailList() != null && !book.getOrderDetailList().isEmpty()) {
+                long total = book.getOrderDetailList()
+                        .stream()
+                        .filter(od -> od.getQuantity() != null)
+                        .mapToLong(od -> od.getQuantity())
+                        .sum();
+                book.setTotalSold(total);
+            } else {
+                book.setTotalSold(0L);
+            }
+        }
+        return books;
     }
 
     // Các phương thức helper

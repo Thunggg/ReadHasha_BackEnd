@@ -98,11 +98,17 @@ public class BookController {
                     case "-bookPrice":
                         orderBy = "b.bookPrice DESC";
                         break;
+                    case "-publicationYear":
+                        orderBy = "b.publicationYear DESC";
+                        break;
                     case "bookQuantity":
                         orderBy = "b.bookQuantity ASC";
                         break;
                     case "-bookQuantity":
                         orderBy = "b.bookQuantity DESC";
+                        break;
+                    case "-sold":
+                        orderBy = "sold DESC";
                         break;
                 }
             }
