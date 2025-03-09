@@ -89,8 +89,7 @@ public class BookDTO implements Serializable {
     @JsonManagedReference
     private List<BookCategoryDTO> bookCategories = new ArrayList<>();
 
-    // @OneToMany(mappedBy = "bookID",cascade = CascadeType.ALL, fetch =
-    // FetchType.EAGER)
-    // @JsonIgnore
-    // private List<CartDTO> cartList;
+    @OneToMany(mappedBy = "bookID", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonIgnore
+    private List<CartDTO> cartList;
 }

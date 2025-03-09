@@ -61,17 +61,17 @@ public class AccountDTO implements Serializable {
     private String code;
 
     // Ignoring lazy-loaded collections that don’t need serialization
-    // @OneToMany(mappedBy = "username", fetch = FetchType.LAZY)
-    // @JsonIgnore
-    // private Collection<OrderDTO> orderDTOCollection;
+    @OneToMany(mappedBy = "username", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private Collection<OrderDTO> orderDTOCollection;
 
     // @OneToMany(mappedBy = "username", fetch = FetchType.LAZY)
     // @JsonIgnore
     // private Collection<StaffDTO> staffDTOCollection;
 
-    // @OneToMany(mappedBy = "username", fetch = FetchType.LAZY)
-    // @JsonIgnore
-    // private Collection<CartDTO> cartCollection;
+    @OneToMany(mappedBy = "username", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private Collection<CartDTO> cartCollection;
 
     // @OneToMany(mappedBy = "username")
     // @JsonIgnore
