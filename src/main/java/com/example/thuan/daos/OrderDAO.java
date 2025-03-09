@@ -16,4 +16,7 @@ public interface OrderDAO {
     List<OrderDTO> findAll();
 
     List<OrderDTO> searchByOrderId(int orderID);
+
+    // Phương thức mới để tìm đơn hàng theo username
+    List<OrderDTO> findByUsername(String username);
 }

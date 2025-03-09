@@ -53,7 +53,7 @@ public class OrderDTO implements Serializable {
 
     @OneToMany(mappedBy = "orderID", fetch = FetchType.LAZY)
     @JsonManagedReference
-    @JsonIgnore
+    // @JsonIgnore
     private List<OrderDetailDTO> orderDetailList;
 
     @Column(name = "orderaddress")

@@ -131,4 +131,16 @@ public class OrderController {
         }
     }
 
+    @GetMapping("/history")
+    public BaseResponse<List<OrderDTO>> getOrderHistory(@RequestParam("username") String username) {
+        // Kiểm tra user có tồn tại không
+        AccountDTO account = accountDAO.findByUsername(username);
+        if (account == null) {
+            return BaseResponse.error("User not found", HttpStatus.NOT_FOUND.value(), null);
+        }
+        // Truy vấn lịch sử đơn hàng (bao gồm orderDetailList và thông tin sách) theo
+        // username
+        List<OrderDTO> orders = orderDAO.findByUsername(username);
+        return BaseResponse.success("Order history retrieved successfully", HttpStatus.OK.value(), orders, null, null);
+    }
 }

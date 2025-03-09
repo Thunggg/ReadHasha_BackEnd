@@ -57,4 +57,16 @@ public class OrderDAOImpl implements OrderDAO {
         return query.getResultList();
     }
 
+    @Override
+    public List<OrderDTO> findByUsername(String username) {
+        TypedQuery<OrderDTO> query = entityManager.createQuery(
+                "SELECT DISTINCT o FROM OrderDTO o " +
+                        "JOIN FETCH o.username " +
+                        "LEFT JOIN FETCH o.orderDetailList od " +
+                        "LEFT JOIN FETCH od.bookID " +
+                        "WHERE o.username.username = :username",
+                OrderDTO.class);
+        query.setParameter("username", username);
+        return query.getResultList();
+    }
 }
