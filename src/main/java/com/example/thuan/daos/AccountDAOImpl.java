@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.thuan.exceptions.AppException;
 import com.example.thuan.models.AccountDTO;
+import com.example.thuan.request.ChangePasswordRequest;
 import com.example.thuan.request.UpdateUserRequest;
 import com.example.thuan.ultis.EmailSenderUtil;
 import com.example.thuan.ultis.ErrorCode;
@@ -390,6 +391,27 @@ public class AccountDAOImpl implements AccountDAO {
         entityManager.refresh(managedAccount);
 
         return managedAccount;
+    }
+
+    @Override
+    @Transactional
+    public boolean changePassword(String username, ChangePasswordRequest request) {
+        // 1. Tìm tài khoản
+        AccountDTO account = findByUsername(username);
+        if (account == null) {
+            throw new AppException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        // 2. Kiểm tra mật khẩu cũ
+        if (!password.matches(request.getOldPassword(), account.getPassword())) {
+            throw new AppException(ErrorCode.INVALID_OLD_PASSWORD);
+        }
+
+        // 3. Mã hóa và cập nhật mật khẩu mới
+        account.setPassword(password.encode(request.getNewPassword()));
+        entityManager.merge(account);
+
+        return true;
     }
 
 }

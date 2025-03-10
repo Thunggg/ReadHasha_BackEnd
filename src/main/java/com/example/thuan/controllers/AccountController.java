@@ -24,6 +24,7 @@ import com.example.thuan.daos.AccountDAO;
 import com.example.thuan.daos.AccountDAOImpl;
 import com.example.thuan.exceptions.AppException;
 import com.example.thuan.models.AccountDTO;
+import com.example.thuan.request.ChangePasswordRequest;
 import com.example.thuan.request.UpdateUserRequest;
 import com.example.thuan.respone.BaseResponse;
 import com.example.thuan.respone.Meta;
@@ -202,6 +203,35 @@ public class AccountController {
                             updatedUser,
                             null,
                             null));
+
+        } catch (AppException e) {
+            return ResponseEntity.status(e.getErrorCode().getHttpStatus())
+                    .body(BaseResponse.error(e.getMessage(), e.getErrorCode().getCode(), null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(BaseResponse.error("Lỗi server", 500, e.getMessage()));
+        }
+    }
+
+    @PostMapping("/update-password")
+    public ResponseEntity<BaseResponse<String>> updatePassword(
+            @RequestBody ChangePasswordRequest request,
+            @RequestHeader("Authorization") String token) {
+
+        try {
+            // Lấy username từ token
+            String username = jwtUtil.validateToken(token);
+
+            // Gọi DAO để xử lý đổi mật khẩu
+            boolean isUpdated = accountDAO.changePassword(username, request);
+
+            if (isUpdated) {
+                return ResponseEntity.ok()
+                        .body(BaseResponse.success("Cập nhật mật khẩu thành công", 200, null, null, null));
+            } else {
+                return ResponseEntity.badRequest()
+                        .body(BaseResponse.error("Cập nhật mật khẩu thất bại", 400, "Invalid Request"));
+            }
 
         } catch (AppException e) {
             return ResponseEntity.status(e.getErrorCode().getHttpStatus())
