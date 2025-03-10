@@ -25,6 +25,7 @@ import com.example.thuan.ultis.Role;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
 import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
 import jakarta.servlet.http.HttpServletResponse;
@@ -189,11 +190,15 @@ public class AccountDAOImpl implements AccountDAO {
 
     @Override
     public AccountDTO findByEmail(String email) {
-        TypedQuery<AccountDTO> query = entityManager.createQuery(
-                "SELECT a FROM AccountDTO a WHERE a.email = :email", AccountDTO.class);
-        query.setParameter("email", email);
-        AccountDTO account = query.getSingleResult();
-        return account;
+        try {
+            TypedQuery<AccountDTO> query = entityManager.createQuery(
+                    "SELECT a FROM AccountDTO a WHERE a.email = :email",
+                    AccountDTO.class);
+            query.setParameter("email", email);
+            return query.getSingleResult();
+        } catch (NoResultException e) {
+            return null; // Trả về null nếu không tìm thấy
+        }
     }
 
     @Transactional
@@ -207,7 +212,11 @@ public class AccountDAOImpl implements AccountDAO {
                 throw new IllegalArgumentException("Tài khoản không tồn tại.");
             }
 
-            if (account.getAccStatus() != Status.UNVERIFIED_STATUS.getValue()) {
+            // if (account.getAccStatus() != Status.UNVERIFIED_STATUS.getValue()) {
+            // return false;
+            // }
+
+            if (account.getAccStatus() == Status.INACTIVE_STATUS.getValue()) {
                 return false;
             }
 
@@ -412,6 +421,63 @@ public class AccountDAOImpl implements AccountDAO {
         entityManager.merge(account);
 
         return true;
+    }
+
+    // AccountDAOImpl.java
+    @Override
+    @Transactional
+    public boolean sendVerificationOTP(String email) {
+        try {
+            AccountDTO account = findByEmail(email);
+
+            // Kiểm tra email có tồn tại không
+            if (account == null) {
+                throw new AppException(ErrorCode.USER_NOT_FOUND);
+            }
+
+            // Kiểm tra trạng thái tài khoản (gửi otp nếu tài khoản ko bị khóa và đã xác
+            // thực)
+            if (account.getAccStatus() == Status.UNVERIFIED_STATUS.getValue() ||
+                    account.getAccStatus() == Status.INACTIVE_STATUS.getValue()) {
+                throw new AppException(ErrorCode.USER_UNVERIFIED_STATUS_OR_INACTIVE_STATUS);
+            }
+
+            // Tạo OTP mới
+            String newOtp = randomNumberGenerator.generateNumber();
+            account.setCode(newOtp);
+            entityManager.merge(account);
+
+            // Gửi email
+            sender.sendEmail(email, newOtp);
+            return true;
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.INTERNAL_ERROR);
+        }
+    }
+
+    @Override
+    @Transactional
+    public boolean resetPassword(String email, String newPassword) {
+        try {
+            AccountDTO account = findByEmail(email);
+            if (account == null) {
+                throw new AppException(ErrorCode.USER_NOT_FOUND);
+            }
+
+            // Kiểm tra trạng thái tài khoản
+            if (account.getAccStatus() != Status.ACTIVE_STATUS.getValue()) {
+                throw new AppException(ErrorCode.USER_UNVERIFIED_STATUS_OR_INACTIVE_STATUS);
+            }
+
+            // Cập nhật mật khẩu mới
+            account.setPassword(password.encode(newPassword));
+            account.setCode(null); // Clear OTP sau khi reset thành công
+            entityManager.merge(account);
+            return true;
+
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.INTERNAL_ERROR);
+        }
     }
 
 }

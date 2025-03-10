@@ -38,4 +38,9 @@ public interface AccountDAO {
     AccountDTO updateUser(UpdateUserRequest updateRequest);
 
     boolean changePassword(String username, ChangePasswordRequest request);
+
+    boolean sendVerificationOTP(String email);
+
+    boolean resetPassword(String email, String newPassword);
+
 }

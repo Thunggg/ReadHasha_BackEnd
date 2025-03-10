@@ -31,6 +31,7 @@ import com.example.thuan.respone.Meta;
 import com.example.thuan.respone.PaginationResponse;
 import com.example.thuan.ultis.ErrorCode;
 import com.example.thuan.ultis.JwtUtil;
+import com.example.thuan.ultis.Status;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -113,7 +114,8 @@ public class AccountController {
                         .body(BaseResponse.success("Mã OTP đã được gửi lại đến email của bạn.", 200, null, null, null));
             } else {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(BaseResponse.error("Không thể gửi lại OTP. Tài khoản đã được xác thực.", 400,
+                        .body(BaseResponse.error("Không thể gửi lại OTP. Tài khoản đã được xác thực hoặc bị khóa!",
+                                400,
                                 "Invalid Account"));
             }
 
@@ -242,4 +244,92 @@ public class AccountController {
         }
     }
 
+    @GetMapping("/check-email")
+    public BaseResponse<AccountDTO> checkEmailExists(
+            @RequestParam("email") String email) {
+        try {
+            AccountDTO exists = accountDAO.findByEmail(email);
+
+            // Trường hợp không tìm thấy email
+            if (exists == null) {
+                return BaseResponse.error("Email không tồn tại", 404, null);
+            }
+
+            // Trường hợp tài khoản bị khóa
+            if (exists.getAccStatus() == Status.INACTIVE_STATUS.getValue()) {
+                return BaseResponse.error("Tài khoản đã bị khóa", 403, null);
+            }
+
+            // Trường hợp hợp lệ
+            return BaseResponse.success("Tồn tại tài khoản", 200, exists, null, null);
+
+        } catch (Exception e) {
+            return BaseResponse.error("Lỗi hệ thống", 500, e.getMessage());
+        }
+    }
+
+    // AccountController.java
+    @PostMapping("/email/send-otp")
+    public ResponseEntity<BaseResponse<String>> sendVerificationOTP(
+            @RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email");
+            String accessToken = jwtUtil.generateTokenForRegister(email);
+
+            // Validate email
+            if (email == null || email.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(BaseResponse.error("Email không được để trống", 400, null));
+            }
+
+            // Gọi DAO
+            boolean success = accountDAO.sendVerificationOTP(email);
+
+            if (success) {
+                return ResponseEntity.ok()
+                        .body(BaseResponse.success("Mã OTP đã được gửi", 200, null, accessToken, null));
+            } else {
+                return ResponseEntity.badRequest()
+                        .body(BaseResponse.error("Không thể gửi OTP", 400, "Tài khoản không hợp lệ"));
+            }
+
+        } catch (AppException e) {
+            return ResponseEntity.status(e.getErrorCode().getHttpStatus())
+                    .body(BaseResponse.error(e.getMessage(), e.getErrorCode().getCode(), null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(BaseResponse.error("Lỗi server", 500, e.getMessage()));
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<BaseResponse<String>> resetPassword(
+            @RequestHeader("Authorization") String token,
+            @RequestBody Map<String, String> request) {
+        try {
+            // 1. Giải mã JWT để lấy email
+            String email = jwtUtil.validateToken(token);
+
+            // 2. Validate input
+            String newPassword = request.get("newPassword");
+
+            // 3. Gọi DAO reset password
+            boolean success = accountDAO.resetPassword(email, newPassword);
+
+            if (success) {
+                return ResponseEntity.ok()
+                        .body(BaseResponse.success("Đặt lại mật khẩu thành công", 200, null, null, null));
+            }
+
+            return ResponseEntity.badRequest()
+                    .body(BaseResponse.error("Đặt lại mật khẩu thất bại", 400, null));
+
+        } catch (AppException e) {
+            return ResponseEntity.status(e.getErrorCode().getHttpStatus())
+                    .body(BaseResponse.error(e.getMessage(), e.getErrorCode().getCode(), null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(BaseResponse.error("Lỗi hệ thống", 500, e.getMessage()));
+        }
+    }
 }

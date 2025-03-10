@@ -16,6 +16,8 @@ public enum ErrorCode {
     USER_NOT_FOUND(1054, "Không tìm thấy người dùng này!", HttpStatus.NOT_FOUND), // Đã sửa mã trùng lặp
     USER_NOT_UPDATE(1055, "Không thể update admin!", HttpStatus.NOT_FOUND), // Đã sửa mã trùng lặp
     INVALID_OLD_PASSWORD(1056, "Mật khẩu cũ không đúng!", HttpStatus.UNAUTHORIZED),
+    USER_UNVERIFIED_STATUS_OR_INACTIVE_STATUS(1057, "Tài khoản chưa xác thực hoặc đã bị khóa!",
+            HttpStatus.UNAUTHORIZED),
 
     // 2001 - 2005: lỗi phân trang
     PAGE_SIZE_NOT_VALID(2001, "Số lượng phần tử không hợp lệ!", HttpStatus.BAD_REQUEST),
