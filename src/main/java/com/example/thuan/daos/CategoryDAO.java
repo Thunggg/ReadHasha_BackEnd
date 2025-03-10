@@ -18,7 +18,7 @@ public interface CategoryDAO {
 
     public List<CategoryDTO> searchByCategoryIds(List<Integer> categoryIds);
 
-    public List<CategoryDTO> getCategories(int offset, int pageSize, String catName, String sort);
+    public List<CategoryDTO> getCategories(int offset, int pageSize, String catName, String catStatus, String sort);
 
-    public long countCategoriesWithConditions(String catName);
+    public long countCategoriesWithConditions(String catName, String catStatus);
 }

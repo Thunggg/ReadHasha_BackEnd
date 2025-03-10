@@ -84,6 +84,7 @@ public class CategoryController {
     @GetMapping("/category-pagination")
     public BaseResponse<PaginationResponse<CategoryDTO>> getCategoriesPagination(
             @RequestParam(name = "catName", required = false) String catName,
+            @RequestParam(name = "catStatus", required = false) String catStatus,
             @RequestParam(name = "current", defaultValue = "1") int current,
             @RequestParam(name = "pageSize", defaultValue = "5") int pageSize,
             @RequestParam(name = "sort", required = false) String sort) {
@@ -91,12 +92,12 @@ public class CategoryController {
         try {
             int offset = (current - 1) * pageSize;
 
-            // Gọi DAO để lấy danh sách danh mục theo điều kiện tìm kiếm và sắp xếp
-            List<CategoryDTO> data = categoryDAO.getCategories(offset, pageSize, catName, sort);
+            // Gọi DAO để lấy danh sách danh mục theo điều kiện tìm kiếm (catName,
+            // catStatus) và sắp xếp
+            List<CategoryDTO> data = categoryDAO.getCategories(offset, pageSize, catName, catStatus, sort);
 
             // Đếm tổng số bản ghi theo điều kiện tìm kiếm
-            long total = categoryDAO.countCategoriesWithConditions(catName);
-
+            long total = categoryDAO.countCategoriesWithConditions(catName, catStatus);
             int pages = (pageSize == 0) ? 0 : (int) Math.ceil((double) total / pageSize);
 
             Meta meta = new Meta();

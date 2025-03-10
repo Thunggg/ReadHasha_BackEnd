@@ -77,12 +77,22 @@ public class CategoryDAOlmpl implements CategoryDAO {
     }
 
     @Override
-    public List<CategoryDTO> getCategories(int offset, int pageSize, String catName, String sort) {
+    public List<CategoryDTO> getCategories(int offset, int pageSize, String catName, String catStatus, String sort) {
         String baseQuery = "SELECT c FROM CategoryDTO c";
         String whereClause = "";
-        if (catName != null && !catName.trim().isEmpty()) {
+
+        boolean hasCatName = (catName != null && !catName.trim().isEmpty());
+        boolean hasCatStatus = (catStatus != null && !catStatus.trim().isEmpty());
+
+        // Xây dựng điều kiện WHERE dựa trên cả catName và catStatus
+        if (hasCatName && hasCatStatus) {
+            whereClause = " WHERE LOWER(c.catName) LIKE LOWER(:catName) AND c.catStatus = :catStatus";
+        } else if (hasCatName) {
             whereClause = " WHERE LOWER(c.catName) LIKE LOWER(:catName)";
+        } else if (hasCatStatus) {
+            whereClause = " WHERE c.catStatus = :catStatus";
         }
+
         String orderClause = "";
         if (sort != null && !sort.trim().isEmpty()) {
             // Ví dụ: sort có dạng "catName" (ASC) hoặc "-catName" (DESC)
@@ -92,34 +102,55 @@ public class CategoryDAOlmpl implements CategoryDAO {
                 sortField = sort.substring(1);
                 sortOrder = "DESC";
             }
-            // Chỉ cho phép sort theo các trường nhất định: catID, catName, catStatus
+            // Cho phép sort theo các trường: catID, catName, catStatus
             if (!("catID".equals(sortField) || "catName".equals(sortField) || "catStatus".equals(sortField))) {
                 sortField = "catID";
             }
             orderClause = " ORDER BY c." + sortField + " " + sortOrder;
         }
+
         String jpql = baseQuery + whereClause + orderClause;
         TypedQuery<CategoryDTO> query = entityManager.createQuery(jpql, CategoryDTO.class);
-        if (!whereClause.isEmpty()) {
+
+        if (hasCatName) {
             query.setParameter("catName", "%" + catName.trim() + "%");
         }
+        if (hasCatStatus) {
+            // Chuyển đổi catStatus sang kiểu số (Integer)
+            query.setParameter("catStatus", Integer.parseInt(catStatus));
+        }
+
         query.setFirstResult(offset);
         query.setMaxResults(pageSize);
         return query.getResultList();
     }
 
     @Override
-    public long countCategoriesWithConditions(String catName) {
+    public long countCategoriesWithConditions(String catName, String catStatus) {
         String baseQuery = "SELECT COUNT(c) FROM CategoryDTO c";
         String whereClause = "";
-        if (catName != null && !catName.trim().isEmpty()) {
+
+        boolean hasCatName = (catName != null && !catName.trim().isEmpty());
+        boolean hasCatStatus = (catStatus != null && !catStatus.trim().isEmpty());
+
+        if (hasCatName && hasCatStatus) {
+            whereClause = " WHERE LOWER(c.catName) LIKE LOWER(:catName) AND c.catStatus = :catStatus";
+        } else if (hasCatName) {
             whereClause = " WHERE LOWER(c.catName) LIKE LOWER(:catName)";
+        } else if (hasCatStatus) {
+            whereClause = " WHERE c.catStatus = :catStatus";
         }
+
         String jpql = baseQuery + whereClause;
         TypedQuery<Long> query = entityManager.createQuery(jpql, Long.class);
-        if (!whereClause.isEmpty()) {
+
+        if (hasCatName) {
             query.setParameter("catName", "%" + catName.trim() + "%");
         }
+        if (hasCatStatus) {
+            query.setParameter("catStatus", Integer.parseInt(catStatus));
+        }
+
         return query.getSingleResult();
     }
 
