@@ -76,4 +76,51 @@ public class CategoryDAOlmpl implements CategoryDAO {
         return query.getResultList();
     }
 
+    @Override
+    public List<CategoryDTO> getCategories(int offset, int pageSize, String catName, String sort) {
+        String baseQuery = "SELECT c FROM CategoryDTO c";
+        String whereClause = "";
+        if (catName != null && !catName.trim().isEmpty()) {
+            whereClause = " WHERE LOWER(c.catName) LIKE LOWER(:catName)";
+        }
+        String orderClause = "";
+        if (sort != null && !sort.trim().isEmpty()) {
+            // Ví dụ: sort có dạng "catName" (ASC) hoặc "-catName" (DESC)
+            String sortField = sort;
+            String sortOrder = "ASC";
+            if (sort.startsWith("-")) {
+                sortField = sort.substring(1);
+                sortOrder = "DESC";
+            }
+            // Chỉ cho phép sort theo các trường nhất định: catID, catName, catStatus
+            if (!("catID".equals(sortField) || "catName".equals(sortField) || "catStatus".equals(sortField))) {
+                sortField = "catID";
+            }
+            orderClause = " ORDER BY c." + sortField + " " + sortOrder;
+        }
+        String jpql = baseQuery + whereClause + orderClause;
+        TypedQuery<CategoryDTO> query = entityManager.createQuery(jpql, CategoryDTO.class);
+        if (!whereClause.isEmpty()) {
+            query.setParameter("catName", "%" + catName.trim() + "%");
+        }
+        query.setFirstResult(offset);
+        query.setMaxResults(pageSize);
+        return query.getResultList();
+    }
+
+    @Override
+    public long countCategoriesWithConditions(String catName) {
+        String baseQuery = "SELECT COUNT(c) FROM CategoryDTO c";
+        String whereClause = "";
+        if (catName != null && !catName.trim().isEmpty()) {
+            whereClause = " WHERE LOWER(c.catName) LIKE LOWER(:catName)";
+        }
+        String jpql = baseQuery + whereClause;
+        TypedQuery<Long> query = entityManager.createQuery(jpql, Long.class);
+        if (!whereClause.isEmpty()) {
+            query.setParameter("catName", "%" + catName.trim() + "%");
+        }
+        return query.getSingleResult();
+    }
+
 }

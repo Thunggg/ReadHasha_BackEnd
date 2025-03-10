@@ -10,6 +10,8 @@ import com.example.thuan.daos.CategoryDAO;
 import com.example.thuan.models.CategoryDTO;
 import com.example.thuan.respone.BaseResponse;
 import com.example.thuan.respone.CategoryResponse;
+import com.example.thuan.respone.Meta;
+import com.example.thuan.respone.PaginationResponse;
 
 import io.jsonwebtoken.lang.Arrays;
 
@@ -76,6 +78,37 @@ public class CategoryController {
         } catch (Exception e) {
             e.printStackTrace();
             return BaseResponse.error("Failed to filter categories: " + e.getMessage(), 500, null);
+        }
+    }
+
+    @GetMapping("/category-pagination")
+    public BaseResponse<PaginationResponse<CategoryDTO>> getCategoriesPagination(
+            @RequestParam(name = "catName", required = false) String catName,
+            @RequestParam(name = "current", defaultValue = "1") int current,
+            @RequestParam(name = "pageSize", defaultValue = "5") int pageSize,
+            @RequestParam(name = "sort", required = false) String sort) {
+
+        try {
+            int offset = (current - 1) * pageSize;
+
+            // Gọi DAO để lấy danh sách danh mục theo điều kiện tìm kiếm và sắp xếp
+            List<CategoryDTO> data = categoryDAO.getCategories(offset, pageSize, catName, sort);
+
+            // Đếm tổng số bản ghi theo điều kiện tìm kiếm
+            long total = categoryDAO.countCategoriesWithConditions(catName);
+
+            int pages = (pageSize == 0) ? 0 : (int) Math.ceil((double) total / pageSize);
+
+            Meta meta = new Meta();
+            meta.setCurrent(current);
+            meta.setPageSize(pageSize);
+            meta.setPages(pages);
+            meta.setTotal(total);
+
+            PaginationResponse<CategoryDTO> pagingRes = new PaginationResponse<>(data, meta);
+            return BaseResponse.success("Lấy danh sách danh mục thành công!", 200, pagingRes, null, null);
+        } catch (Exception e) {
+            return BaseResponse.error("Lỗi: " + e.getMessage(), 500, null);
         }
     }
 
