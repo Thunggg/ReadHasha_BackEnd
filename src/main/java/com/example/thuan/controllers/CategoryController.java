@@ -123,4 +123,18 @@ public class CategoryController {
         }
     }
 
+    @PutMapping("/")
+    public BaseResponse<CategoryDTO> updateCategory(@RequestBody CategoryDTO categoryDTO) {
+        try {
+            if (categoryDTO.getCatID() == null) {
+                throw new IllegalArgumentException("Category ID is required for update");
+            }
+            // Gọi DAO để cập nhật danh mục (với merge, nếu entity đã có thì cập nhật)
+            CategoryDTO updatedCategory = categoryDAO.save(categoryDTO);
+            return BaseResponse.success("Category updated successfully!", 200, updatedCategory, null, null);
+        } catch (Exception e) {
+            return BaseResponse.error("Failed to update category: " + e.getMessage(), 500, null);
+        }
+    }
+
 }
