@@ -46,7 +46,8 @@ public class CategoryDAOlmpl implements CategoryDAO {
 
     @Override
     public List<CategoryDTO> findAll() {
-        TypedQuery<CategoryDTO> query = entityManager.createQuery("SELECT c FROM CategoryDTO c", CategoryDTO.class);
+        TypedQuery<CategoryDTO> query = entityManager.createQuery("SELECT c FROM CategoryDTO c WHERE c.catStatus != 0",
+                CategoryDTO.class);
 
         return query.getResultList();
     }

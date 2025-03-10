@@ -113,4 +113,14 @@ public class CategoryController {
         }
     }
 
+    @PostMapping("/")
+    public BaseResponse<CategoryDTO> createCategory(@RequestBody CategoryDTO categoryDTO) {
+        try {
+            CategoryDTO newCategory = categoryDAO.save(categoryDTO);
+            return BaseResponse.success("Category created successfully!", 200, newCategory, null, null);
+        } catch (Exception e) {
+            return BaseResponse.error("Failed to create category: " + e.getMessage(), 500, null);
+        }
+    }
+
 }
