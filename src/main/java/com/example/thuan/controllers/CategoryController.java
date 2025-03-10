@@ -137,4 +137,13 @@ public class CategoryController {
         }
     }
 
+    @DeleteMapping("/{catID}")
+    public BaseResponse<Void> deleteCategory(@PathVariable("catID") Integer catID) {
+        try {
+            categoryDAO.delete(catID);
+            return BaseResponse.success("Category deleted successfully!", 200, null, null, null);
+        } catch (Exception e) {
+            return BaseResponse.error("Failed to delete category: " + e.getMessage(), 500, null);
+        }
+    }
 }

@@ -155,4 +155,15 @@ public class CategoryDAOlmpl implements CategoryDAO {
         return query.getSingleResult();
     }
 
+    @Override
+    @Transactional
+    public void delete(int catID) {
+        CategoryDTO category = entityManager.find(CategoryDTO.class, catID);
+        if (category != null) {
+            entityManager.remove(category);
+        } else {
+            throw new RuntimeException("Category not found with id: " + catID);
+        }
+    }
+
 }

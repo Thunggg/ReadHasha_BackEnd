@@ -21,4 +21,6 @@ public interface CategoryDAO {
     public List<CategoryDTO> getCategories(int offset, int pageSize, String catName, String catStatus, String sort);
 
     public long countCategoriesWithConditions(String catName, String catStatus);
+
+    public void delete(int catID);
 }
