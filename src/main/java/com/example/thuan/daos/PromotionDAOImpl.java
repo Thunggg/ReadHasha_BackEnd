@@ -57,20 +57,44 @@ public class PromotionDAOImpl implements PromotionDAO {
     }
 
     @Override
-    public List<PromotionDTO> getPromotions(int offset, int pageSize, String proName, String proStatus, String sort) {
+    public List<PromotionDTO> getPromotions(int offset, int pageSize, String proName, String proStatus, String sort,
+            String startDate, String endDate) {
         String baseQuery = "SELECT p FROM PromotionDTO p";
         String whereClause = "";
 
         boolean hasProName = (proName != null && !proName.trim().isEmpty());
         boolean hasProStatus = (proStatus != null && !proStatus.trim().isEmpty());
+        boolean hasStartDate = (startDate != null && !startDate.trim().isEmpty());
+        boolean hasEndDate = (endDate != null && !endDate.trim().isEmpty());
 
-        // Xây dựng điều kiện WHERE dựa trên proName và proStatus
-        if (hasProName && hasProStatus) {
-            whereClause = " WHERE LOWER(p.proName) LIKE LOWER(:proName) AND p.proStatus = :proStatus";
-        } else if (hasProName) {
-            whereClause = " WHERE LOWER(p.proName) LIKE LOWER(:proName)";
-        } else if (hasProStatus) {
-            whereClause = " WHERE p.proStatus = :proStatus";
+        // Xây dựng điều kiện WHERE dựa trên proName, proStatus, startDate và endDate
+        if (hasProName || hasProStatus || hasStartDate || hasEndDate) {
+            whereClause = " WHERE";
+
+            if (hasProName) {
+                whereClause += " LOWER(p.proName) LIKE LOWER(:proName)";
+                if (hasProStatus || hasStartDate || hasEndDate) {
+                    whereClause += " AND";
+                }
+            }
+
+            if (hasProStatus) {
+                whereClause += " p.proStatus = :proStatus";
+                if (hasStartDate || hasEndDate) {
+                    whereClause += " AND";
+                }
+            }
+
+            if (hasStartDate) {
+                whereClause += " p.startDate >= :startDate";
+                if (hasEndDate) {
+                    whereClause += " AND";
+                }
+            }
+
+            if (hasEndDate) {
+                whereClause += " p.endDate <= :endDate";
+            }
         }
 
         String orderClause = "";
@@ -103,6 +127,26 @@ public class PromotionDAOImpl implements PromotionDAO {
             // Chuyển đổi proStatus sang kiểu số (Integer)
             query.setParameter("proStatus", Integer.parseInt(proStatus));
         }
+        if (hasStartDate) {
+            try {
+                java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                java.util.Date parsedStartDate = dateFormat.parse(startDate);
+                query.setParameter("startDate", parsedStartDate);
+            } catch (Exception e) {
+                // Xử lý lỗi nếu định dạng ngày không hợp lệ
+                e.printStackTrace();
+            }
+        }
+        if (hasEndDate) {
+            try {
+                java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                java.util.Date parsedEndDate = dateFormat.parse(endDate);
+                query.setParameter("endDate", parsedEndDate);
+            } catch (Exception e) {
+                // Xử lý lỗi nếu định dạng ngày không hợp lệ
+                e.printStackTrace();
+            }
+        }
 
         query.setFirstResult(offset);
         query.setMaxResults(pageSize);
@@ -110,19 +154,43 @@ public class PromotionDAOImpl implements PromotionDAO {
     }
 
     @Override
-    public long countPromotionsWithConditions(String proName, String proStatus) {
+    public long countPromotionsWithConditions(String proName, String proStatus, String startDate, String endDate) {
         String baseQuery = "SELECT COUNT(p) FROM PromotionDTO p";
         String whereClause = "";
 
         boolean hasProName = (proName != null && !proName.trim().isEmpty());
         boolean hasProStatus = (proStatus != null && !proStatus.trim().isEmpty());
+        boolean hasStartDate = (startDate != null && !startDate.trim().isEmpty());
+        boolean hasEndDate = (endDate != null && !endDate.trim().isEmpty());
 
-        if (hasProName && hasProStatus) {
-            whereClause = " WHERE LOWER(p.proName) LIKE LOWER(:proName) AND p.proStatus = :proStatus";
-        } else if (hasProName) {
-            whereClause = " WHERE LOWER(p.proName) LIKE LOWER(:proName)";
-        } else if (hasProStatus) {
-            whereClause = " WHERE p.proStatus = :proStatus";
+        // Xây dựng điều kiện WHERE dựa trên proName, proStatus, startDate và endDate
+        if (hasProName || hasProStatus || hasStartDate || hasEndDate) {
+            whereClause = " WHERE";
+
+            if (hasProName) {
+                whereClause += " LOWER(p.proName) LIKE LOWER(:proName)";
+                if (hasProStatus || hasStartDate || hasEndDate) {
+                    whereClause += " AND";
+                }
+            }
+
+            if (hasProStatus) {
+                whereClause += " p.proStatus = :proStatus";
+                if (hasStartDate || hasEndDate) {
+                    whereClause += " AND";
+                }
+            }
+
+            if (hasStartDate) {
+                whereClause += " p.startDate >= :startDate";
+                if (hasEndDate) {
+                    whereClause += " AND";
+                }
+            }
+
+            if (hasEndDate) {
+                whereClause += " p.endDate <= :endDate";
+            }
         }
 
         String jpql = baseQuery + whereClause;
@@ -133,6 +201,26 @@ public class PromotionDAOImpl implements PromotionDAO {
         }
         if (hasProStatus) {
             query.setParameter("proStatus", Integer.parseInt(proStatus));
+        }
+        if (hasStartDate) {
+            try {
+                java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                java.util.Date parsedStartDate = dateFormat.parse(startDate);
+                query.setParameter("startDate", parsedStartDate);
+            } catch (Exception e) {
+                // Xử lý lỗi nếu định dạng ngày không hợp lệ
+                e.printStackTrace();
+            }
+        }
+        if (hasEndDate) {
+            try {
+                java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                java.util.Date parsedEndDate = dateFormat.parse(endDate);
+                query.setParameter("endDate", parsedEndDate);
+            } catch (Exception e) {
+                // Xử lý lỗi nếu định dạng ngày không hợp lệ
+                e.printStackTrace();
+            }
         }
 
         return query.getSingleResult();

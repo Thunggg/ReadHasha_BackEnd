@@ -51,15 +51,18 @@ public class PromotionController {
             @RequestParam(name = "proStatus", required = false) String proStatus,
             @RequestParam(name = "current", defaultValue = "1") int current,
             @RequestParam(name = "pageSize", defaultValue = "5") int pageSize,
-            @RequestParam(name = "sort", required = false) String sort) {
+            @RequestParam(name = "sort", required = false) String sort,
+            @RequestParam(name = "startDate", required = false) String startDate,
+            @RequestParam(name = "endDate", required = false) String endDate) {
         try {
             int offset = (current - 1) * pageSize;
 
             // Lấy danh sách promotion theo điều kiện tìm kiếm và sắp xếp
-            List<PromotionDTO> data = promotionDAO.getPromotions(offset, pageSize, proName, proStatus, sort);
+            List<PromotionDTO> data = promotionDAO.getPromotions(offset, pageSize, proName, proStatus, sort, startDate,
+                    endDate);
 
             // Đếm tổng số bản ghi theo điều kiện tìm kiếm
-            long total = promotionDAO.countPromotionsWithConditions(proName, proStatus);
+            long total = promotionDAO.countPromotionsWithConditions(proName, proStatus, startDate, endDate);
             int pages = (pageSize == 0) ? 0 : (int) Math.ceil((double) total / pageSize);
 
             Meta meta = new Meta();
