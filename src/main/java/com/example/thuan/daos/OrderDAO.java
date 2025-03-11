@@ -1,6 +1,7 @@
 package com.example.thuan.daos;
 
 import java.util.List;
+import java.util.Map;
 
 import com.example.thuan.models.OrderDTO;
 
@@ -19,4 +20,8 @@ public interface OrderDAO {
 
     // Phương thức mới để tìm đơn hàng theo username
     List<OrderDTO> findByUsername(String username);
+
+    List<OrderDTO> getOrders(int offset, int pageSize, String whereClause, String sort, Map<String, Object> parameters);
+
+    long countOrdersWithConditions(String whereClause, Map<String, Object> parameters);
 }

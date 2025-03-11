@@ -21,9 +21,12 @@ import com.example.thuan.models.OrderDetailDTO;
 import com.example.thuan.request.OrderDetailRequestDTO;
 import com.example.thuan.request.OrderRequestDTO;
 import com.example.thuan.respone.BaseResponse;
+import com.example.thuan.respone.Meta;
+import com.example.thuan.respone.PaginationResponse;
 import com.example.thuan.ultis.EmailSenderUtil;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -31,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.text.NumberFormat;
+import java.text.SimpleDateFormat;
 import java.util.Locale;
 
 @RestController
@@ -142,5 +146,85 @@ public class OrderController {
         // username
         List<OrderDTO> orders = orderDAO.findByUsername(username);
         return BaseResponse.success("Order history retrieved successfully", HttpStatus.OK.value(), orders, null, null);
+    }
+
+    @GetMapping("/order-pagination")
+    @Transactional
+    public BaseResponse<PaginationResponse<OrderDTO>> getOrderPagination(
+            @RequestParam(name = "orderCode", required = false) String orderCode,
+            @RequestParam(name = "username", required = false) String username,
+            @RequestParam(name = "orderStatus", required = false) String orderStatus,
+            @RequestParam(name = "startDate", required = false) String startDate,
+            @RequestParam(name = "endDate", required = false) String endDate,
+            @RequestParam(name = "current", defaultValue = "1") int current,
+            @RequestParam(name = "pageSize", defaultValue = "5") int pageSize,
+            @RequestParam(name = "sort", required = false) String sort) {
+        try {
+            int offset = (current - 1) * pageSize;
+
+            List<String> conditions = new ArrayList<>();
+            Map<String, Object> parameters = new HashMap<>();
+
+            if (orderCode != null && !orderCode.trim().isEmpty()) {
+                conditions.add("LOWER(o.orderCode) LIKE LOWER(:orderCode)");
+                parameters.put("orderCode", "%" + orderCode.trim() + "%");
+            }
+            if (username != null && !username.trim().isEmpty()) {
+                conditions.add("LOWER(o.username) LIKE LOWER(:username)");
+                parameters.put("username", "%" + username.trim() + "%");
+            }
+            if (orderStatus != null && !orderStatus.trim().isEmpty()) {
+                conditions.add("o.orderStatus = :orderStatus");
+                parameters.put("orderStatus", Integer.parseInt(orderStatus));
+            }
+            if (startDate != null && !startDate.trim().isEmpty()) {
+                conditions.add("o.orderDate >= :startDate");
+                try {
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                    Date parsedStartDate = dateFormat.parse(startDate);
+                    parameters.put("startDate", parsedStartDate);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            if (endDate != null && !endDate.trim().isEmpty()) {
+                conditions.add("o.orderDate <= :endDate");
+                try {
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                    Date parsedEndDate = dateFormat.parse(endDate);
+                    parameters.put("endDate", parsedEndDate);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            String whereClause = "";
+            if (!conditions.isEmpty()) {
+                whereClause = " WHERE " + String.join(" AND ", conditions);
+            }
+
+            // Lấy danh sách order theo điều kiện tìm kiếm và sắp xếp
+            List<OrderDTO> data = orderDAO.getOrders(offset, pageSize, whereClause, sort, parameters);
+            for (OrderDTO order : data) {
+                if (order.getUsername() != null) {
+                    order.setCustomerName(order.getUsername().getUsername()); // Sử dụng username trực tiếp
+                }
+            }
+
+            // Đếm tổng số bản ghi theo điều kiện tìm kiếm
+            long total = orderDAO.countOrdersWithConditions(whereClause, parameters);
+            int pages = (pageSize == 0) ? 0 : (int) Math.ceil((double) total / pageSize);
+
+            Meta meta = new Meta();
+            meta.setCurrent(current);
+            meta.setPageSize(pageSize);
+            meta.setPages(pages);
+            meta.setTotal(total);
+
+            PaginationResponse<OrderDTO> pagingRes = new PaginationResponse<>(data, meta);
+            return BaseResponse.success("Lấy danh sách đơn hàng thành công!", 200, pagingRes, null, null);
+        } catch (Exception e) {
+            return BaseResponse.error("Lỗi: " + e.getMessage(), 500, null);
+        }
     }
 }

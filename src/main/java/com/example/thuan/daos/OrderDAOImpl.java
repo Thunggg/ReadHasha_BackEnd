@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.thuan.models.OrderDTO;
 
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class OrderDAOImpl implements OrderDAO {
@@ -69,4 +70,64 @@ public class OrderDAOImpl implements OrderDAO {
         query.setParameter("username", username);
         return query.getResultList();
     }
+
+    @Override
+    public List<OrderDTO> getOrders(int offset, int pageSize, String whereClause, String sort,
+            Map<String, Object> parameters) {
+        String baseQuery = "SELECT o FROM OrderDTO o";
+
+        String orderClause = "";
+        if (sort != null && !sort.trim().isEmpty()) {
+            // Xử lý sắp xếp
+            String sortField = sort;
+            String sortOrder = "ASC";
+            if (sort.startsWith("-")) {
+                sortField = sort.substring(1);
+                sortOrder = "DESC";
+            }
+
+            // Cho phép sắp xếp theo các trường phổ biến
+            if (!("orderID".equals(sortField) || "orderCode".equals(sortField) ||
+                    "customerName".equals(sortField) || "orderDate".equals(sortField) ||
+                    "orderStatus".equals(sortField) || "totalAmount".equals(sortField))) {
+                sortField = "orderID";
+            }
+
+            orderClause = " ORDER BY o." + sortField + " " + sortOrder;
+        } else {
+            // Mặc định sắp xếp theo orderID giảm dần (mới nhất trước)
+            orderClause = " ORDER BY o.orderID DESC";
+        }
+
+        String jpql = baseQuery + whereClause + orderClause;
+        TypedQuery<OrderDTO> query = entityManager.createQuery(jpql, OrderDTO.class);
+
+        // Thiết lập các tham số từ Map
+        if (parameters != null) {
+            for (Map.Entry<String, Object> entry : parameters.entrySet()) {
+                query.setParameter(entry.getKey(), entry.getValue());
+            }
+        }
+
+        query.setFirstResult(offset);
+        query.setMaxResults(pageSize);
+        return query.getResultList();
+    }
+
+    @Override
+    public long countOrdersWithConditions(String whereClause, Map<String, Object> parameters) {
+        String baseQuery = "SELECT COUNT(o) FROM OrderDTO o";
+        String jpql = baseQuery + whereClause;
+        TypedQuery<Long> query = entityManager.createQuery(jpql, Long.class);
+
+        // Thiết lập các tham số từ Map
+        if (parameters != null) {
+            for (Map.Entry<String, Object> entry : parameters.entrySet()) {
+                query.setParameter(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return query.getSingleResult();
+    }
+
 }
