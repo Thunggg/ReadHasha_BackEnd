@@ -14,6 +14,7 @@ import com.example.thuan.daos.PromotionDAO;
 import com.example.thuan.models.AccountDTO;
 import com.example.thuan.models.PromotionDTO;
 import com.example.thuan.request.CreatePromotionRequest;
+import com.example.thuan.request.UpdatePromotionRequest;
 import com.example.thuan.respone.BaseResponse;
 import com.example.thuan.respone.Meta;
 import com.example.thuan.respone.PaginationResponse;
@@ -120,6 +121,154 @@ public class PromotionController {
             return BaseResponse.success("Tạo khuyến mãi thành công", 201, promotion, null, null);
         } catch (Exception e) {
             return BaseResponse.error("Lỗi khi tạo khuyến mãi: " + e.getMessage(), 500, e.getMessage());
+        }
+    }
+
+    @PutMapping("/update")
+    @Transactional
+    public BaseResponse<PromotionDTO> updatePromotion(@Valid @RequestBody UpdatePromotionRequest request) {
+        try {
+            // Kiểm tra promotion có tồn tại không
+            PromotionDTO existingPromotion = promotionDAO.find(request.getProID());
+            if (existingPromotion == null) {
+                return BaseResponse.error("Không tìm thấy khuyến mãi với ID: " +
+                        request.getProID(), 404, null);
+            }
+
+            // Kiểm tra ngày bắt đầu phải trước ngày kết thúc
+            if (request.getStartDate() != null && request.getEndDate() != null
+                    && request.getStartDate().after(request.getEndDate())) {
+                return BaseResponse.error("Ngày bắt đầu phải trước ngày kết thúc", 400,
+                        null);
+            }
+
+            // Kiểm tra người cập nhật có tồn tại không
+            AccountDTO updatedBy = accountDAO.findByUsername(request.getUpdatedBy());
+            if (updatedBy == null) {
+                return BaseResponse.error("Người cập nhật không tồn tại", 400, null);
+            }
+
+            // Cập nhật thông tin promotion
+            existingPromotion.setProName(request.getProName());
+            existingPromotion.setDiscount(request.getDiscount());
+            existingPromotion.setStartDate(request.getStartDate());
+            existingPromotion.setEndDate(request.getEndDate());
+            existingPromotion.setQuantity(request.getQuantity());
+            existingPromotion.setProStatus(request.getProStatus());
+
+            // Lưu log cập nhật nếu cần
+            // Ví dụ: promotionLogDAO.saveLog(existingPromotion, updatedBy, "UPDATE");
+
+            // Cập nhật vào database
+            promotionDAO.update(existingPromotion);
+
+            return BaseResponse.success("Cập nhật khuyến mãi thành công", 200, existingPromotion, null, null);
+        } catch (Exception e) {
+            return BaseResponse.error("Lỗi khi cập nhật khuyến mãi: " + e.getMessage(), 500, e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}")
+    public BaseResponse<PromotionDTO> getPromotionById(@PathVariable("id") int proID) {
+        try {
+            PromotionDTO promotion = promotionDAO.find(proID);
+            if (promotion == null) {
+                return BaseResponse.error("Không tìm thấy khuyến mãi với ID: " + proID, 404, null);
+            }
+            return BaseResponse.success("Lấy thông tin khuyến mãi thành công", 200, promotion, null, null);
+        } catch (Exception e) {
+            return BaseResponse.error("Lỗi khi lấy thông tin khuyến mãi: " + e.getMessage(), 500, e.getMessage());
+        }
+    }
+
+    @PatchMapping("/{id}/status")
+    @Transactional
+    public BaseResponse<PromotionDTO> updatePromotionStatus(
+            @PathVariable("id") int proID,
+            @RequestParam("status") int status,
+            @RequestParam("username") String username) {
+        try {
+            // Kiểm tra promotion có tồn tại không
+            PromotionDTO existingPromotion = promotionDAO.find(proID);
+            if (existingPromotion == null) {
+                return BaseResponse.error("Không tìm thấy khuyến mãi với ID: " + proID, 404, null);
+            }
+
+            // Kiểm tra người cập nhật có tồn tại không
+            AccountDTO updatedBy = accountDAO.findByUsername(username);
+            if (updatedBy == null) {
+                return BaseResponse.error("Người cập nhật không tồn tại", 400, null);
+            }
+
+            // Kiểm tra trạng thái hợp lệ (ví dụ: 0 = Inactive, 1 = Active)
+            if (status != 0 && status != 1) {
+                return BaseResponse.error("Trạng thái không hợp lệ. Chỉ chấp nhận giá trị 0 hoặc 1", 400, null);
+            }
+
+            // Cập nhật trạng thái
+            existingPromotion.setProStatus(status);
+
+            // Lưu log cập nhật nếu cần
+            // Ví dụ: promotionLogDAO.saveLog(existingPromotion, updatedBy,
+            // "UPDATE_STATUS");
+
+            // Cập nhật vào database
+            promotionDAO.update(existingPromotion);
+
+            return BaseResponse.success("Cập nhật trạng thái khuyến mãi thành công", 200, existingPromotion, null,
+                    null);
+        } catch (Exception e) {
+            return BaseResponse.error("Lỗi khi cập nhật trạng thái khuyến mãi: " + e.getMessage(), 500, e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @Transactional
+    public BaseResponse<PromotionDTO> deletePromotion(
+            @PathVariable("id") int proID,
+            @RequestParam("username") String username) {
+        try {
+            // Kiểm tra promotion có tồn tại không
+            PromotionDTO existingPromotion = promotionDAO.find(proID);
+            if (existingPromotion == null) {
+                return BaseResponse.error("Không tìm thấy khuyến mãi với ID: " + proID, 404, null);
+            }
+
+            // Kiểm tra người xóa có tồn tại không
+            AccountDTO deletedBy = accountDAO.findByUsername(username);
+            if (deletedBy == null) {
+                return BaseResponse.error("Người xóa không tồn tại", 400, null);
+            }
+
+            // Kiểm tra xem promotion đã được sử dụng chưa
+            // Nếu đã có đơn hàng sử dụng promotion này, không cho phép xóa
+            if (existingPromotion.getOrderList() != null && !existingPromotion.getOrderList().isEmpty()) {
+                return BaseResponse.error("Không thể xóa khuyến mãi đã được sử dụng trong đơn hàng", 400, null);
+            }
+
+            // Lưu log xóa nếu cần
+            // Ví dụ: promotionLogDAO.saveLog(existingPromotion, deletedBy, "DELETE");
+
+            // Xóa khỏi database
+            promotionDAO.delete(proID);
+
+            return BaseResponse.success("Xóa khuyến mãi thành công", 200, existingPromotion, null, null);
+        } catch (Exception e) {
+            return BaseResponse.error("Lỗi khi xóa khuyến mãi: " + e.getMessage(), 500, e.getMessage());
+        }
+    }
+
+    @GetMapping("/check-code")
+    public BaseResponse<Boolean> checkPromoCode(@RequestParam("code") String proCode) {
+        try {
+            boolean exists = promotionDAO.isProCodeExists(proCode);
+            if (exists) {
+                return BaseResponse.success("Mã khuyến mãi đã tồn tại", 200, true, null, null);
+            } else {
+                return BaseResponse.success("Mã khuyến mãi có thể sử dụng", 200, false, null, null);
+            }
+        } catch (Exception e) {
+            return BaseResponse.error("Lỗi khi kiểm tra mã khuyến mãi: " + e.getMessage(), 500, e.getMessage());
         }
     }
 }
