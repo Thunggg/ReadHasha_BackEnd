@@ -16,4 +16,9 @@ public interface PromotionDAO {
     List<PromotionDTO> findAll();
 
     List<PromotionDTO> searchPromotions(String searchTerm);
+
+    public List<PromotionDTO> getPromotions(int offset, int pageSize, String proName, String proStatus, String sort);
+
+    public long countPromotionsWithConditions(String proName, String proStatus);
+
 }

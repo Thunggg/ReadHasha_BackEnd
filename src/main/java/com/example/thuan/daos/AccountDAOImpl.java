@@ -258,9 +258,12 @@ public class AccountDAOImpl implements AccountDAO {
             }
 
             // Thêm điều kiện khoảng thời gian dob
-            if (startDob != null && endDob != null) {
-                jpql.append("AND a.dob BETWEEN :startDob AND :endDob ");
+            if (startDob != null) {
+                jpql.append("AND a.dob >= :startDob ");
                 params.put("startDob", startDob);
+            }
+            if (endDob != null) {
+                jpql.append("AND a.dob <= :endDob ");
                 params.put("endDob", endDob);
             }
 
@@ -316,9 +319,12 @@ public class AccountDAOImpl implements AccountDAO {
             }
 
             // Thêm điều kiện khoảng thời gian dob
-            if (startDob != null && endDob != null) {
-                jpql.append("AND a.dob BETWEEN :startDob AND :endDob ");
+            if (startDob != null) {
+                jpql.append("AND a.dob >= :startDob ");
                 params.put("startDob", startDob);
+            }
+            if (endDob != null) {
+                jpql.append("AND a.dob <= :endDob ");
                 params.put("endDob", endDob);
             }
 

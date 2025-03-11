@@ -43,10 +43,9 @@ public class PromotionDAOImpl implements PromotionDAO {
 
     @Override
     public List<PromotionDTO> findAll() {
-        TypedQuery<PromotionDTO> query = entityManager.createQuery(
-                "SELECT p FROM PromotionDTO p LEFT JOIN FETCH p.createdBy LEFT JOIN FETCH p.approvedBy",
-                PromotionDTO.class);
-        return query.getResultList();
+        String jpql = "SELECT p FROM PromotionDTO p";
+        return entityManager.createQuery(jpql, PromotionDTO.class)
+                .getResultList();
     }
 
     @Override
@@ -55,6 +54,88 @@ public class PromotionDAOImpl implements PromotionDAO {
         TypedQuery<PromotionDTO> query = entityManager.createQuery(jpql, PromotionDTO.class);
         query.setParameter("searchTerm", "%" + searchTerm.toLowerCase() + "%");
         return query.getResultList();
+    }
+
+    @Override
+    public List<PromotionDTO> getPromotions(int offset, int pageSize, String proName, String proStatus, String sort) {
+        String baseQuery = "SELECT p FROM PromotionDTO p";
+        String whereClause = "";
+
+        boolean hasProName = (proName != null && !proName.trim().isEmpty());
+        boolean hasProStatus = (proStatus != null && !proStatus.trim().isEmpty());
+
+        // Xây dựng điều kiện WHERE dựa trên proName và proStatus
+        if (hasProName && hasProStatus) {
+            whereClause = " WHERE LOWER(p.proName) LIKE LOWER(:proName) AND p.proStatus = :proStatus";
+        } else if (hasProName) {
+            whereClause = " WHERE LOWER(p.proName) LIKE LOWER(:proName)";
+        } else if (hasProStatus) {
+            whereClause = " WHERE p.proStatus = :proStatus";
+        }
+
+        String orderClause = "";
+        if (sort != null && !sort.trim().isEmpty()) {
+            // Ví dụ: sort có dạng "proName" (ASC) hoặc "-proName" (DESC)
+            String sortField = sort;
+            String sortOrder = "ASC";
+            if (sort.startsWith("-")) {
+                sortField = sort.substring(1);
+                sortOrder = "DESC";
+            }
+            // Cho phép sort theo các trường: proID, proName, proStatus, discount,
+            // startDate, endDate, quantity
+            if (!("proID".equals(sortField) || "proName".equals(sortField) ||
+                    "proStatus".equals(sortField) || "discount".equals(sortField) ||
+                    "startDate".equals(sortField) || "endDate".equals(sortField) ||
+                    "quantity".equals(sortField))) {
+                sortField = "proID";
+            }
+            orderClause = " ORDER BY p." + sortField + " " + sortOrder;
+        }
+
+        String jpql = baseQuery + whereClause + orderClause;
+        TypedQuery<PromotionDTO> query = entityManager.createQuery(jpql, PromotionDTO.class);
+
+        if (hasProName) {
+            query.setParameter("proName", "%" + proName.trim() + "%");
+        }
+        if (hasProStatus) {
+            // Chuyển đổi proStatus sang kiểu số (Integer)
+            query.setParameter("proStatus", Integer.parseInt(proStatus));
+        }
+
+        query.setFirstResult(offset);
+        query.setMaxResults(pageSize);
+        return query.getResultList();
+    }
+
+    @Override
+    public long countPromotionsWithConditions(String proName, String proStatus) {
+        String baseQuery = "SELECT COUNT(p) FROM PromotionDTO p";
+        String whereClause = "";
+
+        boolean hasProName = (proName != null && !proName.trim().isEmpty());
+        boolean hasProStatus = (proStatus != null && !proStatus.trim().isEmpty());
+
+        if (hasProName && hasProStatus) {
+            whereClause = " WHERE LOWER(p.proName) LIKE LOWER(:proName) AND p.proStatus = :proStatus";
+        } else if (hasProName) {
+            whereClause = " WHERE LOWER(p.proName) LIKE LOWER(:proName)";
+        } else if (hasProStatus) {
+            whereClause = " WHERE p.proStatus = :proStatus";
+        }
+
+        String jpql = baseQuery + whereClause;
+        TypedQuery<Long> query = entityManager.createQuery(jpql, Long.class);
+
+        if (hasProName) {
+            query.setParameter("proName", "%" + proName.trim() + "%");
+        }
+        if (hasProStatus) {
+            query.setParameter("proStatus", Integer.parseInt(proStatus));
+        }
+
+        return query.getSingleResult();
     }
 
 }
