@@ -226,4 +226,16 @@ public class PromotionDAOImpl implements PromotionDAO {
         return query.getSingleResult();
     }
 
+    @Override
+    public boolean isProCodeExists(String proCode) {
+        if (proCode == null || proCode.trim().isEmpty()) {
+            return false;
+        }
+
+        String jpql = "SELECT COUNT(p) FROM PromotionDTO p WHERE p.proCode = :proCode";
+        TypedQuery<Long> query = entityManager.createQuery(jpql, Long.class);
+        query.setParameter("proCode", proCode.trim());
+
+        return query.getSingleResult() > 0;
+    }
 }

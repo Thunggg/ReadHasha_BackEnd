@@ -1,6 +1,8 @@
 package com.example.thuan.controllers;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,7 +11,9 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.thuan.daos.AccountDAO;
 import com.example.thuan.daos.PromotionDAO;
+import com.example.thuan.models.AccountDTO;
 import com.example.thuan.models.PromotionDTO;
+import com.example.thuan.request.CreatePromotionRequest;
 import com.example.thuan.respone.BaseResponse;
 import com.example.thuan.respone.Meta;
 import com.example.thuan.respone.PaginationResponse;
@@ -75,6 +79,47 @@ public class PromotionController {
             return BaseResponse.success("Lấy danh sách promotion thành công!", 200, pagingRes, null, null);
         } catch (Exception e) {
             return BaseResponse.error("Lỗi: " + e.getMessage(), 500, null);
+        }
+    }
+
+    @PostMapping("/create")
+    @Transactional
+    public BaseResponse<PromotionDTO> createPromotion(@Valid @RequestBody CreatePromotionRequest request) {
+        try {
+            // Kiểm tra mã khuyến mãi đã tồn tại chưa
+            if (promotionDAO.isProCodeExists(request.getProCode())) {
+                return BaseResponse.error("Mã khuyến mãi đã tồn tại", 400, null);
+            }
+
+            // Kiểm tra ngày bắt đầu phải trước ngày kết thúc
+            if (request.getStartDate() != null && request.getEndDate() != null
+                    && request.getStartDate().after(request.getEndDate())) {
+                return BaseResponse.error("Ngày bắt đầu phải trước ngày kết thúc", 400, null);
+            }
+
+            // Kiểm tra người tạo có tồn tại không
+            AccountDTO createdBy = accountDAO.findByUsername(request.getCreatedBy());
+            if (createdBy == null) {
+                return BaseResponse.error("Người tạo không tồn tại", 400, null);
+            }
+
+            // Tạo đối tượng PromotionDTO từ request
+            PromotionDTO promotion = new PromotionDTO();
+            promotion.setProName(request.getProName());
+            promotion.setProCode(request.getProCode().toUpperCase()); // Đảm bảo mã luôn viết hoa
+            promotion.setDiscount(request.getDiscount());
+            promotion.setStartDate(request.getStartDate());
+            promotion.setEndDate(request.getEndDate());
+            promotion.setQuantity(request.getQuantity());
+            promotion.setProStatus(request.getProStatus());
+            promotion.setCreatedBy(createdBy);
+
+            // Lưu vào database
+            promotionDAO.save(promotion);
+
+            return BaseResponse.success("Tạo khuyến mãi thành công", 201, promotion, null, null);
+        } catch (Exception e) {
+            return BaseResponse.error("Lỗi khi tạo khuyến mãi: " + e.getMessage(), 500, e.getMessage());
         }
     }
 }

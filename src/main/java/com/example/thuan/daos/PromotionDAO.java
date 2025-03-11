@@ -22,4 +22,6 @@ public interface PromotionDAO {
 
     public long countPromotionsWithConditions(String proName, String proStatus, String startDate, String endDate);
 
+    // Thêm phương thức để kiểm tra mã khuyến mãi đã tồn tại chưa
+    boolean isProCodeExists(String proCode);
 }
