@@ -59,7 +59,6 @@ public class PromotionDTO implements Serializable {
 
     @JoinColumn(name = "createdby", referencedColumnName = "username")
     @ManyToOne
-    @JsonIgnore
     private AccountDTO createdBy;
 
     // @OneToMany(mappedBy = "proId")
