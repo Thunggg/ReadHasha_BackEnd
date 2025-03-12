@@ -151,7 +151,7 @@ public class OrderController {
     @GetMapping("/order-pagination")
     @Transactional
     public BaseResponse<PaginationResponse<OrderDTO>> getOrderPagination(
-            @RequestParam(name = "orderCode", required = false) String orderCode,
+            @RequestParam(name = "orderID", required = false) String orderIDParam,
             @RequestParam(name = "username", required = false) String username,
             @RequestParam(name = "orderStatus", required = false) String orderStatus,
             @RequestParam(name = "startDate", required = false) String startDate,
@@ -165,18 +165,28 @@ public class OrderController {
             List<String> conditions = new ArrayList<>();
             Map<String, Object> parameters = new HashMap<>();
 
-            if (orderCode != null && !orderCode.trim().isEmpty()) {
-                conditions.add("LOWER(o.orderCode) LIKE LOWER(:orderCode)");
-                parameters.put("orderCode", "%" + orderCode.trim() + "%");
+            if (orderIDParam != null && !orderIDParam.trim().isEmpty()) {
+                try {
+                    // Chuyển đổi orderID từ String sang Integer
+                    Integer orderID = Integer.parseInt(orderIDParam.trim());
+                    conditions.add("o.orderID = :orderID");
+                    parameters.put("orderID", orderID);
+                } catch (NumberFormatException e) {
+                    // Nếu không thể chuyển đổi thành số, bỏ qua điều kiện này
+                    System.out.println("Invalid orderID format: " + orderIDParam);
+                }
             }
+
             if (username != null && !username.trim().isEmpty()) {
-                conditions.add("LOWER(o.username) LIKE LOWER(:username)");
+                conditions.add("LOWER(o.username.username) LIKE LOWER(:username)");
                 parameters.put("username", "%" + username.trim() + "%");
             }
+
             if (orderStatus != null && !orderStatus.trim().isEmpty()) {
                 conditions.add("o.orderStatus = :orderStatus");
                 parameters.put("orderStatus", Integer.parseInt(orderStatus));
             }
+
             if (startDate != null && !startDate.trim().isEmpty()) {
                 conditions.add("o.orderDate >= :startDate");
                 try {
@@ -187,6 +197,7 @@ public class OrderController {
                     e.printStackTrace();
                 }
             }
+
             if (endDate != null && !endDate.trim().isEmpty()) {
                 conditions.add("o.orderDate <= :endDate");
                 try {
@@ -205,9 +216,14 @@ public class OrderController {
 
             // Lấy danh sách order theo điều kiện tìm kiếm và sắp xếp
             List<OrderDTO> data = orderDAO.getOrders(offset, pageSize, whereClause, sort, parameters);
+
+            // Đảm bảo orderDetailList được load và thiết lập customerName
             for (OrderDTO order : data) {
+                if (order.getOrderDetailList() != null) {
+                    order.getOrderDetailList().size(); // Force initialization
+                }
                 if (order.getUsername() != null) {
-                    order.setCustomerName(order.getUsername().getUsername()); // Sử dụng username trực tiếp
+                    order.setCustomerName(order.getUsername().getUsername());
                 }
             }
 
@@ -224,6 +240,7 @@ public class OrderController {
             PaginationResponse<OrderDTO> pagingRes = new PaginationResponse<>(data, meta);
             return BaseResponse.success("Lấy danh sách đơn hàng thành công!", 200, pagingRes, null, null);
         } catch (Exception e) {
+            e.printStackTrace(); // In ra lỗi để debug
             return BaseResponse.error("Lỗi: " + e.getMessage(), 500, null);
         }
     }
