@@ -2,6 +2,8 @@ package com.example.thuan.models;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,6 +32,7 @@ public class CartDTO implements Serializable {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "username", referencedColumnName = "username")
+    @JsonBackReference
     private AccountDTO username;
 
     @ManyToOne(fetch = FetchType.EAGER)

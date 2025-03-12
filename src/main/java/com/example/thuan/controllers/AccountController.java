@@ -1,6 +1,7 @@
 package com.example.thuan.controllers;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.sql.Date;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ import com.example.thuan.daos.AccountDAO;
 import com.example.thuan.daos.AccountDAOImpl;
 import com.example.thuan.exceptions.AppException;
 import com.example.thuan.models.AccountDTO;
+import com.example.thuan.models.CartDTO;
 import com.example.thuan.request.ChangePasswordRequest;
 import com.example.thuan.request.UpdateUserRequest;
 import com.example.thuan.respone.BaseResponse;
@@ -127,13 +129,22 @@ public class AccountController {
 
     @GetMapping("/fetch-account")
     public BaseResponse<AccountDTO> getAccount(@RequestHeader("Authorization") String token) {
-        // Giải mã JWT để lấy email
-        String userName = jwtUtil.validateToken(token);
-        AccountDTO account = accountDAO.findByUsername(userName);
-        if (account == null) {
-            return BaseResponse.error(ErrorCode.TOKEN_EXPIRED.getMessage(), ErrorCode.TOKEN_EXPIRED.getCode(), null);
+        try {
+            // Giải mã JWT để lấy username
+            String userName = jwtUtil.validateToken(token);
+            AccountDTO account = accountDAO.findByUsername(userName);
+
+            if (account == null) {
+                return BaseResponse.error(ErrorCode.TOKEN_EXPIRED.getMessage(), ErrorCode.TOKEN_EXPIRED.getCode(),
+                        null);
+            }
+
+            // Trả về trực tiếp account, không cần wrap trong Map nữa
+            return BaseResponse.success("Lấy account thành công!", 200, account, null, null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return BaseResponse.error("Lỗi hệ thống", 500, e.getMessage());
         }
-        return BaseResponse.success("Lấy account thành công!", 200, account, null, null);
     }
 
     @GetMapping("/account-pagination")

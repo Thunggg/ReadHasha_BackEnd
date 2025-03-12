@@ -1,6 +1,8 @@
 package com.example.thuan.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -70,7 +72,7 @@ public class AccountDTO implements Serializable {
     // private Collection<StaffDTO> staffDTOCollection;
 
     @OneToMany(mappedBy = "username", fetch = FetchType.LAZY)
-    @JsonIgnore
+    @JsonManagedReference
     private Collection<CartDTO> cartCollection;
 
     // @OneToMany(mappedBy = "username")

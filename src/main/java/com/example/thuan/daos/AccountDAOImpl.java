@@ -65,32 +65,64 @@ public class AccountDAOImpl implements AccountDAO {
         return query.getResultList();
     }
 
+    // @Override
+    // public AccountDTO findByUsername(String username) {
+    // try {
+    // Query query = entityManager.createQuery(
+    // "Select a.username, a.firstName, a.lastName, a.dob, a.address, a.email,
+    // a.role, a.sex, a.phone, a.accStatus, a.password, a.code From AccountDTO a
+    // WHERE a.username=:username");
+    // query.setParameter("username", username);
+    // Object[] result = (Object[]) query.getSingleResult();
+    // AccountDTO account = new AccountDTO();
+    // account.setUsername((String) result[0]);
+    // account.setFirstName((String) result[1]);
+    // account.setLastName((String) result[2]);
+    // account.setDob((Date) result[3]);
+    // account.setAddress((String) result[4]);
+    // account.setEmail((String) result[5]);
+    // account.setRole((Integer) result[6]);
+    // account.setSex((Integer) result[7]);
+    // account.setPhone((String) result[8]);
+    // account.setAccStatus((Integer) result[9]);
+    // account.setPassword((String) result[10]);
+    // account.setCode((String) result[11]);
+    // return account;
+    // } catch (Exception e) {
+    // System.out.println("No found account with username = " + username);
+    // System.out.println(e.getMessage());
+    // }
+    // return null;
+    // }
+
     @Override
     public AccountDTO findByUsername(String username) {
         try {
-            Query query = entityManager.createQuery(
-                    "Select a.username, a.firstName, a.lastName, a.dob, a.address, a.email, a.role, a.sex, a.phone, a.accStatus, a.password, a.code From AccountDTO a WHERE a.username=:username");
+            // Sử dụng JPQL để lấy thông tin tài khoản và giỏ hàng
+            String jpql = "SELECT DISTINCT a FROM AccountDTO a " +
+                    "LEFT JOIN FETCH a.cartCollection c " +
+                    "LEFT JOIN FETCH c.bookID " +
+                    "WHERE a.username = :username";
+
+            TypedQuery<AccountDTO> query = entityManager.createQuery(jpql, AccountDTO.class);
             query.setParameter("username", username);
-            Object[] result = (Object[]) query.getSingleResult();
-            AccountDTO account = new AccountDTO();
-            account.setUsername((String) result[0]);
-            account.setFirstName((String) result[1]);
-            account.setLastName((String) result[2]);
-            account.setDob((Date) result[3]);
-            account.setAddress((String) result[4]);
-            account.setEmail((String) result[5]);
-            account.setRole((Integer) result[6]);
-            account.setSex((Integer) result[7]);
-            account.setPhone((String) result[8]);
-            account.setAccStatus((Integer) result[9]);
-            account.setPassword((String) result[10]);
-            account.setCode((String) result[11]);
+
+            AccountDTO account = query.getSingleResult();
+
+            // Đảm bảo cartCollection được khởi tạo
+            if (account.getCartCollection() != null) {
+                account.getCartCollection().size(); // Force initialization
+            }
+
             return account;
-        } catch (Exception e) {
+        } catch (NoResultException e) {
             System.out.println("No found account with username = " + username);
-            System.out.println(e.getMessage());
+            return null;
+        } catch (Exception e) {
+            System.out.println("Error in findByUsername: " + e.getMessage());
+            e.printStackTrace();
+            return null;
         }
-        return null;
     }
 
     // @Override
