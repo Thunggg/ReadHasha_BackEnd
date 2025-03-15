@@ -42,7 +42,9 @@ public class PromotionController {
     @GetMapping("/")
     public BaseResponse<List<PromotionDTO>> getAllPromotions() {
         try {
-            List<PromotionDTO> promotions = promotionDAO.findAll();
+            // Lấy tất cả promotion có trạng thái = 1 và còn hạn sử dụng
+            List<PromotionDTO> promotions = promotionDAO.findActivePromotions();
+
             return BaseResponse.success("Lấy danh sách promotion thành công!", 200, promotions, null, null);
         } catch (Exception e) {
             return BaseResponse.error("Lỗi khi lấy danh sách promotion: " + e.getMessage(), 500, null);

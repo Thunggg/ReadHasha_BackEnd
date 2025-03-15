@@ -18,6 +18,7 @@ import com.example.thuan.models.AccountDTO;
 import com.example.thuan.models.BookDTO;
 import com.example.thuan.models.OrderDTO;
 import com.example.thuan.models.OrderDetailDTO;
+import com.example.thuan.models.PromotionDTO;
 import com.example.thuan.request.OrderDetailRequestDTO;
 import com.example.thuan.request.OrderRequestDTO;
 import com.example.thuan.respone.BaseResponse;
@@ -93,6 +94,13 @@ public class OrderController {
             newOrder.setUsername(account);
             newOrder.setOrderAddress(orderRequest.getAddress());
 
+            // Thêm kiểm tra null cho proID
+            if (orderRequest.getPromotionID() != null) {
+                newOrder.setProID(promotionDAO.find(orderRequest.getPromotionID()));
+            } else {
+                newOrder.setProID(null); // Không có promotion
+            }
+
             // Lưu đơn hàng vào database
             orderDAO.save(newOrder);
 
@@ -114,7 +122,7 @@ public class OrderController {
                 orderDetail.setOrderID(newOrder);
                 orderDetail.setQuantity(detailRequest.getQuantity());
                 orderDetail.setTotalPrice(
-                        book.getBookPrice().multiply(BigDecimal.valueOf(detailRequest.getQuantity())));
+                        new BigDecimal(orderRequest.getFinalPrice()));
 
                 // Lưu chi tiết đơn hàng
                 orderDetailDAO.save(orderDetail);

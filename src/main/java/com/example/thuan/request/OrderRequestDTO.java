@@ -16,4 +16,6 @@ public class OrderRequestDTO {
     private String address;
     private String phone;
     private List<OrderDetailRequestDTO> details;
+    private Integer promotionID;
+    private Integer finalPrice;
 }

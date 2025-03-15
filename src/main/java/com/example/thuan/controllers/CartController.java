@@ -23,21 +23,6 @@ public class CartController {
         this.cartDAO = cartDAO;
     }
 
-    // @PostMapping("/add")
-    // public ResponseEntity<String> addBookToCart(@RequestParam(name = "username")
-    // String username,
-    // @RequestParam(name = "bookID") int bookID,
-    // @RequestParam(name = "quantity") int quantity) {
-    // try {
-    // cartDAO.addBookToCart(username, bookID, quantity);
-    // return ResponseEntity.status(HttpStatus.CREATED).body("Book added to cart
-    // successfully.");
-    // } catch (Exception e) {
-    // return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " +
-    // e.getMessage());
-    // }
-    // }
-
     @PostMapping("/add")
     public BaseResponse<CartDTO> addBookToCart(@RequestParam(name = "username") String username,
             @RequestParam(name = "bookID") int bookID,

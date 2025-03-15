@@ -24,4 +24,6 @@ public interface PromotionDAO {
 
     // Thêm phương thức để kiểm tra mã khuyến mãi đã tồn tại chưa
     boolean isProCodeExists(String proCode);
+
+    List<PromotionDTO> findActivePromotions();
 }

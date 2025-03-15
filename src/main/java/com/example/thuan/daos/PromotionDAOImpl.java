@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.thuan.models.PromotionDTO;
 
+import java.util.Date;
 import java.util.List;
 
 @Repository
@@ -237,5 +238,15 @@ public class PromotionDAOImpl implements PromotionDAO {
         query.setParameter("proCode", proCode.trim());
 
         return query.getSingleResult() > 0;
+    }
+
+    @Override
+    public List<PromotionDTO> findActivePromotions() {
+        Date currentDate = new Date();
+        String jpql = "FROM PromotionDTO p WHERE p.proStatus = 1 AND p.endDate > :currentDate AND p.startDate < :currentDate";
+
+        return entityManager.createQuery(jpql, PromotionDTO.class)
+                .setParameter("currentDate", currentDate)
+                .getResultList();
     }
 }
