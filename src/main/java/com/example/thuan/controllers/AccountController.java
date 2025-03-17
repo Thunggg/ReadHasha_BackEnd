@@ -1,7 +1,6 @@
 package com.example.thuan.controllers;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.sql.Date;
 import java.util.List;
 import java.util.Map;
@@ -22,10 +21,8 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.thuan.daos.AccountDAO;
-import com.example.thuan.daos.AccountDAOImpl;
 import com.example.thuan.exceptions.AppException;
 import com.example.thuan.models.AccountDTO;
-import com.example.thuan.models.CartDTO;
 import com.example.thuan.request.ChangePasswordRequest;
 import com.example.thuan.request.UpdateUserRequest;
 import com.example.thuan.respone.BaseResponse;
@@ -127,6 +124,12 @@ public class AccountController {
         }
     }
 
+    /**
+     * Lấy thông tin tài khoản người dùng
+     * 
+     * @param token JWT token từ header Authorization
+     * @return BaseResponse chứa AccountDTO với thông tin profile người dùng
+     */
     @GetMapping("/fetch-account")
     public BaseResponse<AccountDTO> getAccount(@RequestHeader("Authorization") String token) {
         try {
@@ -147,6 +150,18 @@ public class AccountController {
         }
     }
 
+    /**
+     * Phân trang và tìm kiếm danh sách tài khoản
+     * 
+     * @param email    email người dùng cần tìm
+     * @param userName tên người dùng cần tìm
+     * @param startDob ngày sinh bắt đầu
+     * @param endDob   ngày sinh kết thúc
+     * @param current  trang hiện tại
+     * @param pageSize số bản ghi mỗi trang
+     * @param sort     cột sắp xếp
+     * @return BaseResponse chứa PaginationResponse<AccountDTO>
+     */
     @GetMapping("/account-pagination")
     public BaseResponse<PaginationResponse<AccountDTO>> getAccounts(
             @RequestParam(name = "email", required = false) String email,
@@ -203,6 +218,7 @@ public class AccountController {
         }
     }
 
+    // update useruser
     @PutMapping("/update-user")
     public ResponseEntity<BaseResponse<AccountDTO>> updateUser(
             @RequestBody UpdateUserRequest updateRequest) {
@@ -226,6 +242,7 @@ public class AccountController {
         }
     }
 
+    // update password
     @PostMapping("/update-password")
     public ResponseEntity<BaseResponse<String>> updatePassword(
             @RequestBody ChangePasswordRequest request,
@@ -255,6 +272,7 @@ public class AccountController {
         }
     }
 
+    // check email
     @GetMapping("/check-email")
     public BaseResponse<AccountDTO> checkEmailExists(
             @RequestParam("email") String email) {

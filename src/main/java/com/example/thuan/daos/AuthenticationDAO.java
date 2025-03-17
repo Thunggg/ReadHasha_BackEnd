@@ -11,10 +11,6 @@ import com.example.thuan.respone.BaseResponse;
 import com.example.thuan.ultis.ErrorCode;
 import com.example.thuan.ultis.JwtUtil;
 import com.example.thuan.ultis.Status;
-import com.nimbusds.jose.*;
-import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jose.crypto.MACVerifier;
-import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
 import jakarta.servlet.http.Cookie;
@@ -23,24 +19,15 @@ import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import java.text.ParseException;
-import java.time.Instant;
 
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
-import java.util.UUID;
 
 @Slf4j
 @Repository
