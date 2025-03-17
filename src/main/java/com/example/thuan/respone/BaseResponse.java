@@ -1,7 +1,6 @@
 package com.example.thuan.respone;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
 @Data

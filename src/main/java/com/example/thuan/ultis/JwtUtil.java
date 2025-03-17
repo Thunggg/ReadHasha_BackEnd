@@ -15,14 +15,12 @@ import com.example.thuan.daos.AccountDAO;
 import com.example.thuan.daos.InvalidatedTokenDAO;
 import com.example.thuan.exceptions.AppException;
 import com.example.thuan.models.AccountDTO;
-import com.example.thuan.models.InvalidatedTokenDTO;
 import com.example.thuan.request.IntrospectRequest;
 import com.example.thuan.request.RefreshToken;
 import com.example.thuan.respone.AuthenticationResponse;
 import com.example.thuan.respone.IntrospectResponse;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
-import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import java.util.UUID;
 import java.security.Key;
@@ -100,7 +98,7 @@ public class JwtUtil {
                 .issueTime(new Date())
                 .jwtID(UUID.randomUUID().toString())
                 .expirationTime(
-                        new Date(Instant.now().plus(ACCESS_TOKEN_EXPIRATION, ChronoUnit.SECONDS).toEpochMilli()))
+                        new Date(Instant.now().plus(ACCESS_TOKEN_EXPIRATION, ChronoUnit.MILLIS).toEpochMilli()))
                 .build();
         Payload payload = new Payload(jwtClaimsSet.toJSONObject());
 
@@ -190,8 +188,9 @@ public class JwtUtil {
         boolean isValid = true;
         try {
             verifyToken(token, false);
-
+            log.info("Token validation successful");
         } catch (Exception e) {
+            log.error("Token validation failed: {}", e.getMessage());
             System.out.println(e.getMessage());
             isValid = false;
         }
