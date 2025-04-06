@@ -38,7 +38,7 @@ public class BookDAOImpl implements BookDAO {
     private static final List<String> ALLOWED_SORT_FIELDS = Arrays.asList(
             "b.bookPrice ASC", "b.bookPrice DESC",
             "b.bookQuantity ASC", "b.bookQuantity DESC",
-            "b.bookID DESC", "b.publicationYear DESC", "sold DESC");
+            "b.bookID ASC", "b.publicationYear DESC", "sold DESC");
 
     EntityManager entityManager;
 
@@ -240,7 +240,7 @@ public class BookDAOImpl implements BookDAO {
             if (sort != null && ALLOWED_SORT_FIELDS.contains(sort)) {
                 jpql += " ORDER BY " + convertSortField(sort);
             } else {
-                jpql += " ORDER BY b.bookID DESC";
+                jpql += " ORDER BY b.bookID ASC";
             }
         }
         List<BookDTO> books = entityManager.createQuery(jpql, BookDTO.class)
@@ -312,7 +312,7 @@ public class BookDAOImpl implements BookDAO {
         if (sort != null && ALLOWED_SORT_FIELDS.contains(sort)) {
             queryStr.append(" ORDER BY ").append(convertSortField(sort));
         } else {
-            queryStr.append(" ORDER BY b.bookID DESC");
+            queryStr.append(" ORDER BY b.bookID ASC");
         }
     }
 
