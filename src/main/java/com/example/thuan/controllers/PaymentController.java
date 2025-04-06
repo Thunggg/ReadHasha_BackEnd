@@ -113,8 +113,7 @@ public class PaymentController {
         if (isValidSignature) {
             if (VNPayConfig.VNP_RESPONSE_CODE_SUCCESS.equals(vnp_ResponseCode)) {
                 // Thanh toán thành công - cập nhật trạng thái đơn hàng trong DB
-                String orderId = vnp_Params.get("vnp_TxnRef");
-                // TODO: Cập nhật trạng thái đơn hàng trong database
+                // String orderId = vnp_Params.get("vnp_TxnRef");
 
                 response.put("status", "success");
                 response.put("message", "Thanh toán thành công");
