@@ -244,15 +244,17 @@ public class PromotionController {
 
             // Kiểm tra xem promotion đã được sử dụng chưa
             // Nếu đã có đơn hàng sử dụng promotion này, không cho phép xóa
-            if (existingPromotion.getOrderList() != null && !existingPromotion.getOrderList().isEmpty()) {
-                return BaseResponse.error("Không thể xóa khuyến mãi đã được sử dụng trong đơn hàng", 400, null);
-            }
+            // if (existingPromotion.getOrderList() != null &&
+            // !existingPromotion.getOrderList().isEmpty()) {
+            // return BaseResponse.error("Không thể xóa khuyến mãi đã được sử dụng trong đơn
+            // hàng", 400, null);
+            // }
 
-            // Lưu log xóa nếu cần
-            // Ví dụ: promotionLogDAO.saveLog(existingPromotion, deletedBy, "DELETE");
+            // Thực hiện soft delete bằng cách đặt proStatus = 2
+            existingPromotion.setProStatus(0); // 2 = Deleted
 
-            // Xóa khỏi database
-            promotionDAO.delete(proID);
+            // Cập nhật vào database
+            promotionDAO.update(existingPromotion);
 
             return BaseResponse.success("Xóa khuyến mãi thành công", 200, existingPromotion, null, null);
         } catch (Exception e) {

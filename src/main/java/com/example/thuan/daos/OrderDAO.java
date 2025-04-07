@@ -24,4 +24,11 @@ public interface OrderDAO {
     List<OrderDTO> getOrders(int offset, int pageSize, String whereClause, String sort, Map<String, Object> parameters);
 
     long countOrdersWithConditions(String whereClause, Map<String, Object> parameters);
+
+    // Phương thức để xác nhận đơn hàng từ admin
+    OrderDTO approveOrder(int orderId, String adminUsername) throws Exception;
+
+    // Phương thức để lấy chi tiết đơn hàng bao gồm thông tin khách hàng và mã
+    // khuyến mãi
+    OrderDTO getOrderDetails(int orderId) throws Exception;
 }

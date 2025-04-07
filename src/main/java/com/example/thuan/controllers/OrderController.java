@@ -68,6 +68,9 @@ public class OrderController {
             if (order.getUsername() != null) {
                 order.setCustomerName(order.getUsername().getUsername()); // Sử dụng username trực tiếp
             }
+            if (order.getProID() != null) {
+                order.setPromotionCode(order.getProID().getProCode());
+            }
         }
         return orders;
     }
@@ -153,6 +156,14 @@ public class OrderController {
         // Truy vấn lịch sử đơn hàng (bao gồm orderDetailList và thông tin sách) theo
         // username
         List<OrderDTO> orders = orderDAO.findByUsername(username);
+
+        // Populate promotion code
+        for (OrderDTO order : orders) {
+            if (order.getProID() != null) {
+                order.setPromotionCode(order.getProID().getProCode());
+            }
+        }
+
         return BaseResponse.success("Order history retrieved successfully", HttpStatus.OK.value(), orders, null, null);
     }
 
@@ -233,6 +244,9 @@ public class OrderController {
                 if (order.getUsername() != null) {
                     order.setCustomerName(order.getUsername().getUsername());
                 }
+                if (order.getProID() != null) {
+                    order.setPromotionCode(order.getProID().getProCode());
+                }
             }
 
             // Đếm tổng số bản ghi theo điều kiện tìm kiếm
@@ -250,6 +264,47 @@ public class OrderController {
         } catch (Exception e) {
             e.printStackTrace(); // In ra lỗi để debug
             return BaseResponse.error("Lỗi: " + e.getMessage(), 500, null);
+        }
+    }
+
+    @PatchMapping("/{orderId}/approve")
+    @Transactional
+    public BaseResponse<OrderDTO> approveOrder(
+            @PathVariable("orderId") int orderId,
+            @RequestParam("username") String adminUsername) {
+        try {
+            // Gọi phương thức từ DAO để xác nhận đơn hàng
+            OrderDTO order = orderDAO.approveOrder(orderId, adminUsername);
+
+            // Gửi email thông báo cho khách hàng về việc đơn hàng đã được xác nhận
+            // try {
+            // AccountDTO customer = order.getUsername();
+            // if (customer != null && customer.getEmail() != null) {
+            // // Sử dụng orderID như một thông báo xác nhận
+            // String orderIdStr = String.valueOf(order.getOrderID());
+            // emailSenderUtil.sendEmail(customer.getEmail(), "Đơn hàng #" + orderIdStr + "
+            // đã được xác nhận");
+            // }
+            // } catch (Exception e) {
+            // // Ghi log lỗi nhưng không dừng quy trình nếu việc gửi email thất bại
+            // System.err.println("Không thể gửi email xác nhận: " + e.getMessage());
+            // }
+
+            // Trả về thông tin đơn hàng đã cập nhật
+            return BaseResponse.success("Xác nhận đơn hàng thành công", 200, order, null, null);
+        } catch (Exception e) {
+            return BaseResponse.error("Lỗi khi xác nhận đơn hàng: " + e.getMessage(), 500, e.getMessage());
+        }
+    }
+
+    @GetMapping("/{orderId}")
+    public BaseResponse<OrderDTO> getOrderById(@PathVariable("orderId") int orderId) {
+        try {
+            // Gọi phương thức từ DAO để lấy chi tiết đơn hàng
+            OrderDTO order = orderDAO.getOrderDetails(orderId);
+            return BaseResponse.success("Lấy thông tin đơn hàng thành công", 200, order, null, null);
+        } catch (Exception e) {
+            return BaseResponse.error("Lỗi khi lấy thông tin đơn hàng: " + e.getMessage(), 500, null);
         }
     }
 }

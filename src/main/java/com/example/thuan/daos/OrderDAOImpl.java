@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.thuan.models.OrderDTO;
+import com.example.thuan.models.AccountDTO;
 
 import java.util.List;
 import java.util.Map;
@@ -31,7 +32,19 @@ public class OrderDAOImpl implements OrderDAO {
 
     @Override
     public OrderDTO find(int orderID) {
-        return entityManager.find(OrderDTO.class, orderID);
+        try {
+            TypedQuery<OrderDTO> query = entityManager.createQuery(
+                    "SELECT o FROM OrderDTO o " +
+                            "LEFT JOIN FETCH o.username " +
+                            "LEFT JOIN FETCH o.proID " +
+                            "WHERE o.orderID = :orderID",
+                    OrderDTO.class);
+            query.setParameter("orderID", orderID);
+            return query.getSingleResult();
+        } catch (Exception e) {
+            // If no result is found, return null instead of throwing an exception
+            return null;
+        }
     }
 
     @Override
@@ -47,7 +60,8 @@ public class OrderDAOImpl implements OrderDAO {
 
     @Override
     public List<OrderDTO> findAll() {
-        TypedQuery<OrderDTO> query = entityManager.createQuery("SELECT o FROM OrderDTO o JOIN FETCH o.username",
+        TypedQuery<OrderDTO> query = entityManager.createQuery(
+                "SELECT o FROM OrderDTO o JOIN FETCH o.username LEFT JOIN FETCH o.proID",
                 OrderDTO.class);
         return query.getResultList();
     }
@@ -55,7 +69,8 @@ public class OrderDAOImpl implements OrderDAO {
     @Override
     public List<OrderDTO> searchByOrderId(int orderID) {
         TypedQuery<OrderDTO> query = entityManager.createQuery(
-                "SELECT o FROM OrderDTO o JOIN FETCH o.username WHERE o.orderID = :orderID", OrderDTO.class);
+                "SELECT o FROM OrderDTO o JOIN FETCH o.username LEFT JOIN FETCH o.proID WHERE o.orderID = :orderID",
+                OrderDTO.class);
         query.setParameter("orderID", orderID);
         return query.getResultList();
     }
@@ -65,6 +80,7 @@ public class OrderDAOImpl implements OrderDAO {
         TypedQuery<OrderDTO> query = entityManager.createQuery(
                 "SELECT DISTINCT o FROM OrderDTO o " +
                         "JOIN FETCH o.username " +
+                        "LEFT JOIN FETCH o.proID " +
                         "LEFT JOIN FETCH o.orderDetailList od " +
                         "LEFT JOIN FETCH od.bookID " +
                         "WHERE o.username.username = :username",
@@ -92,7 +108,7 @@ public class OrderDAOImpl implements OrderDAO {
 
         if (sortByTotalPrice) {
             // Sử dụng subquery để tính tổng giá trị đơn hàng và sắp xếp theo nó
-            baseQuery = "SELECT o FROM OrderDTO o LEFT JOIN FETCH o.orderDetailList";
+            baseQuery = "SELECT o FROM OrderDTO o LEFT JOIN FETCH o.orderDetailList LEFT JOIN FETCH o.proID";
 
             // Thêm điều kiện WHERE nếu có
             String jpql = baseQuery + whereClause;
@@ -133,7 +149,7 @@ public class OrderDAOImpl implements OrderDAO {
             }
         } else {
             // Xử lý các trường hợp sắp xếp khác như trước
-            baseQuery = "SELECT o FROM OrderDTO o";
+            baseQuery = "SELECT o FROM OrderDTO o LEFT JOIN FETCH o.proID";
 
             if (sort != null && !sort.trim().isEmpty()) {
                 // Xử lý sắp xếp
@@ -199,4 +215,66 @@ public class OrderDAOImpl implements OrderDAO {
                 .sum();
     }
 
+    @Override
+    @Transactional
+    public OrderDTO approveOrder(int orderId, String adminUsername) throws Exception {
+        // Tìm đơn hàng cần xác nhận
+        OrderDTO order = this.find(orderId);
+        if (order == null) {
+            throw new Exception("Không tìm thấy đơn hàng với ID: " + orderId);
+        }
+
+        // Kiểm tra người xác nhận có tồn tại không
+        TypedQuery<AccountDTO> accountQuery = entityManager.createQuery(
+                "SELECT a FROM AccountDTO a WHERE a.username = :username", AccountDTO.class);
+        accountQuery.setParameter("username", adminUsername);
+
+        AccountDTO admin;
+        try {
+            admin = accountQuery.getSingleResult();
+        } catch (Exception e) {
+            throw new Exception("Không tìm thấy admin với username: " + adminUsername);
+        }
+
+        // Kiểm tra nếu admin có quyền admin (role = 0 theo enum Role.ROLE_ADMIN)
+        if (admin.getRole() != 0) {
+            throw new Exception("Người dùng không có quyền admin");
+        }
+
+        // Kiểm tra nếu đơn hàng đã được xác nhận trước đó
+        if (order.getOrderStatus() == 2) {
+            throw new Exception("Đơn hàng này đã được xác nhận trước đó");
+        }
+
+        // Kiểm tra nếu đơn hàng đã bị hủy
+        if (order.getOrderStatus() == 0) {
+            throw new Exception("Không thể xác nhận đơn hàng đã bị hủy");
+        }
+
+        // Cập nhật trạng thái đơn hàng thành đã xác nhận (status = 2)
+        order.setOrderStatus(2);
+        entityManager.merge(order);
+
+        return order;
+    }
+
+    @Override
+    public OrderDTO getOrderDetails(int orderId) throws Exception {
+        OrderDTO order = this.find(orderId);
+        if (order == null) {
+            throw new Exception("Không tìm thấy đơn hàng với ID: " + orderId);
+        }
+
+        // Populate customer name
+        if (order.getUsername() != null) {
+            order.setCustomerName(order.getUsername().getUsername());
+        }
+
+        // Populate promotion code if exists
+        if (order.getProID() != null) {
+            order.setPromotionCode(order.getProID().getProCode());
+        }
+
+        return order;
+    }
 }

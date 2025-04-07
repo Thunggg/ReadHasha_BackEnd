@@ -61,4 +61,7 @@ public class OrderDTO implements Serializable {
 
     @Transient
     private String customerName;
+
+    @Transient
+    private String promotionCode;
 }
