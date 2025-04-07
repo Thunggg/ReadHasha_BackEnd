@@ -7,6 +7,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.thuan.models.CategoryDTO;
+import com.example.thuan.exceptions.AppException;
+import com.example.thuan.ultis.ErrorCode;
 
 import java.util.List;
 
@@ -19,24 +21,56 @@ public class CategoryDAOlmpl implements CategoryDAO {
         this.entityManager = entityManager;
     }
 
+    /**
+     * Kiểm tra xem tên danh mục đã tồn tại hay chưa
+     * 
+     * @param catName      Tên danh mục cần kiểm tra
+     * @param excludeCatId ID danh mục cần loại trừ (khi cập nhật)
+     * @return true nếu tên đã tồn tại, false nếu chưa tồn tại
+     */
+    public boolean isCategoryNameExists(String catName, Integer excludeCatId) {
+        StringBuilder jpql = new StringBuilder(
+                "SELECT COUNT(c) FROM CategoryDTO c WHERE LOWER(c.catName) = LOWER(:catName) AND c.catStatus != 0");
+
+        if (excludeCatId != null) {
+            jpql.append(" AND c.catID != :excludeCatId");
+        }
+
+        TypedQuery<Long> query = entityManager.createQuery(jpql.toString(), Long.class)
+                .setParameter("catName", catName);
+
+        if (excludeCatId != null) {
+            query.setParameter("excludeCatId", excludeCatId);
+        }
+
+        return query.getSingleResult() > 0;
+    }
+
     @Override
     @Transactional
     public CategoryDTO save(CategoryDTO categoryDTO) {
         if (categoryDTO.getCatName() == null || categoryDTO.getCatName().isEmpty()) {
             throw new IllegalArgumentException("Category name cannot be null or empty");
         }
+
+        // Kiểm tra tên danh mục đã tồn tại chưa
+        boolean isUpdate = (categoryDTO.getCatID() != null);
+        if (isCategoryNameExists(categoryDTO.getCatName(), isUpdate ? categoryDTO.getCatID() : null)) {
+            throw new AppException(ErrorCode.CATEGORY_NAME_EXISTS);
+        }
+
         return entityManager.merge(categoryDTO);
     }
 
-    // @Override
-    // public CategoryDTO find(int catID) {
-    // CategoryDTO object = entityManager.find(CategoryDTO.class, catID);
-    // if (object != null) {
-    // return object;
-    // } else {
-    // throw new CategoryExceptionNotFound();
-    // }
-    // }
+    @Override
+    public CategoryDTO find(int catID) {
+        CategoryDTO object = entityManager.find(CategoryDTO.class, catID);
+        if (object != null) {
+            return object;
+        } else {
+            throw new RuntimeException("Category not found with id: " + catID);
+        }
+    }
 
     // @Override
     // @Transactional
@@ -160,7 +194,9 @@ public class CategoryDAOlmpl implements CategoryDAO {
     public void delete(int catID) {
         CategoryDTO category = entityManager.find(CategoryDTO.class, catID);
         if (category != null) {
-            entityManager.remove(category);
+            // Thực hiện xóa mềm bằng cách đặt catStatus = 0 (Không hoạt động)
+            category.setCatStatus(0); // 0 = Inactive/Deleted
+            entityManager.merge(category);
         } else {
             throw new RuntimeException("Category not found with id: " + catID);
         }

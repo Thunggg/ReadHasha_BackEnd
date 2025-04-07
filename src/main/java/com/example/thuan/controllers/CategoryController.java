@@ -119,7 +119,7 @@ public class CategoryController {
             CategoryDTO newCategory = categoryDAO.save(categoryDTO);
             return BaseResponse.success("Category created successfully!", 200, newCategory, null, null);
         } catch (Exception e) {
-            return BaseResponse.error("Failed to create category: " + e.getMessage(), 500, null);
+            return BaseResponse.error(e.getMessage(), 500, null);
         }
     }
 
@@ -133,7 +133,7 @@ public class CategoryController {
             CategoryDTO updatedCategory = categoryDAO.save(categoryDTO);
             return BaseResponse.success("Category updated successfully!", 200, updatedCategory, null, null);
         } catch (Exception e) {
-            return BaseResponse.error("Failed to update category: " + e.getMessage(), 500, null);
+            return BaseResponse.error(e.getMessage(), 500, null);
         }
     }
 

@@ -28,6 +28,8 @@ public enum ErrorCode {
     CATEGORY_NOT_FOUND(2008, "Danh mục không tồn tại", HttpStatus.NOT_FOUND),
     BOOK_CREATION_ERROR(2009, "Lỗi khi tạo sách", HttpStatus.INTERNAL_SERVER_ERROR),
     BOOK_NOT_FOUND(2010, "Không tìm thấy sách", HttpStatus.BAD_REQUEST),
+    ISBN_ALREADY_EXISTS(2011, "Mã ISBN đã tồn tại trong hệ thống", HttpStatus.BAD_REQUEST),
+    CATEGORY_NAME_EXISTS(2012, "Tên danh mục đã tồn tại trong hệ thống", HttpStatus.BAD_REQUEST),
 
     // 2057-2070: Lỗi liên quan đến file
     FILE_UPLOAD_ERROR(2057, "Lỗi khi upload file", HttpStatus.INTERNAL_SERVER_ERROR),

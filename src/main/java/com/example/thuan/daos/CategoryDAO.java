@@ -7,7 +7,7 @@ import com.example.thuan.models.CategoryDTO;
 public interface CategoryDAO {
     CategoryDTO save(CategoryDTO category);
 
-    // CategoryDTO find(int catID);
+    CategoryDTO find(int catID);
 
     // void delete(int catID);
 

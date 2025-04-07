@@ -462,7 +462,7 @@ public class BookDAOImpl implements BookDAO {
     @Transactional
     public BookDTO processBookCreation(BookDTO book, MultipartFile image) {
 
-        // Kiểm tra trùng lặp
+        // Kiểm tra trùng lặp tiêu đề, tác giả, nhà xuất bản
         List<BookDTO> existingBooks = findBooksByTitleAndAuthorAndPublisher(
                 book.getBookTitle(),
                 book.getAuthor(),
@@ -471,6 +471,19 @@ public class BookDAOImpl implements BookDAO {
 
         if (!existingBooks.isEmpty()) {
             throw new AppException(ErrorCode.BOOK_ALREADY_EXISTS);
+        }
+
+        // Kiểm tra trùng lặp ISBN
+        if (book.getIsbn() != null && !book.getIsbn().isEmpty()) {
+            TypedQuery<Long> isbnQuery = entityManager.createQuery(
+                    "SELECT COUNT(b) FROM BookDTO b WHERE b.isbn = :isbn AND b.bookStatus != 0",
+                    Long.class);
+            isbnQuery.setParameter("isbn", book.getIsbn());
+            long isbnCount = isbnQuery.getSingleResult();
+
+            if (isbnCount > 0) {
+                throw new AppException(ErrorCode.ISBN_ALREADY_EXISTS);
+            }
         }
 
         // Lưu sách trước để có ID
@@ -541,21 +554,17 @@ public class BookDAOImpl implements BookDAO {
     @Override
     @Transactional
     public void deleteBookWithCategories(Integer bookId) {
-        // Xóa danh mục trước
-        Query deleteCategories = entityManager.createNativeQuery(
-                "DELETE FROM Book_Category WHERE book_id = :bookId");
-        deleteCategories.setParameter("bookId", bookId);
-        int deletedCategories = deleteCategories.executeUpdate();
-
-        // Xóa sách
-        Query deleteBook = entityManager.createNativeQuery(
-                "DELETE FROM Book WHERE bookID = :bookId");
-        deleteBook.setParameter("bookId", bookId);
-        int deletedBooks = deleteBook.executeUpdate();
-
-        if (deletedBooks == 0) {
+        // Tìm sách cần xóa
+        BookDTO book = find(bookId);
+        if (book == null) {
             throw new AppException(ErrorCode.BOOK_NOT_FOUND);
         }
+
+        // Thực hiện xóa mềm bằng cách đặt bookStatus = 0 (Không hoạt động)
+        book.setBookStatus(0); // 0 = Inactive/Deleted
+        entityManager.merge(book);
+
+        // Không cần xóa các liên kết BookCategory, giữ cho mục đích lịch sử
     }
 
     @Override
@@ -568,7 +577,7 @@ public class BookDAOImpl implements BookDAO {
                 throw new AppException(ErrorCode.BOOK_NOT_FOUND);
             }
 
-            // Kiểm tra trùng lặp (trừ chính nó)
+            // Kiểm tra trùng lặp tiêu đề, tác giả, nhà xuất bản (trừ chính nó)
             List<BookDTO> existingBooks = findBooksByTitleAndAuthorAndPublisher(
                     updatedBook.getBookTitle(),
                     updatedBook.getAuthor(),
@@ -576,6 +585,21 @@ public class BookDAOImpl implements BookDAO {
                     updatedBook.getBookID());
             if (!existingBooks.isEmpty()) {
                 throw new AppException(ErrorCode.BOOK_ALREADY_EXISTS);
+            }
+
+            // Kiểm tra trùng lặp ISBN (trừ chính sách đang cập nhật)
+            if (updatedBook.getIsbn() != null && !updatedBook.getIsbn().isEmpty() &&
+                    (existingBook.getIsbn() == null || !existingBook.getIsbn().equals(updatedBook.getIsbn()))) {
+                TypedQuery<Long> isbnQuery = entityManager.createQuery(
+                        "SELECT COUNT(b) FROM BookDTO b WHERE b.isbn = :isbn AND b.bookID != :bookId AND b.bookStatus != 0",
+                        Long.class);
+                isbnQuery.setParameter("isbn", updatedBook.getIsbn());
+                isbnQuery.setParameter("bookId", updatedBook.getBookID());
+                long isbnCount = isbnQuery.getSingleResult();
+
+                if (isbnCount > 0) {
+                    throw new AppException(ErrorCode.ISBN_ALREADY_EXISTS);
+                }
             }
 
             // Cập nhật thông tin cơ bản
