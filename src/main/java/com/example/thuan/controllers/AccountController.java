@@ -63,7 +63,8 @@ public class AccountController {
 
     @PostMapping(value = "/register")
     public ResponseEntity<BaseResponse<AccountDTO>> registeredAccount(
-            @RequestPart("register") String account, HttpServletResponse response) {
+            @RequestPart("register") String account,
+            HttpServletResponse response) {
         try {
             AccountDTO createdAccount = accountDAO.registerAccount(account, response);
             String accessToken = jwtUtil.generateTokenForRegister(createdAccount.getEmail());
@@ -153,6 +154,7 @@ public class AccountController {
             @RequestParam(name = "userName", required = false) String userName,
             @RequestParam(name = "startDob", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date startDob,
             @RequestParam(name = "endDob", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date endDob,
+            @RequestParam(name = "accStatus", required = false) Integer accStatus,
             @RequestParam(name = "current", defaultValue = "1") int current,
             @RequestParam(name = "pageSize", defaultValue = "5") int pageSize,
             @RequestParam(name = "sort", required = false) String sort) {
@@ -161,10 +163,12 @@ public class AccountController {
             int offset = (current - 1) * pageSize;
 
             // Gọi DAO với các tham số tìm kiếm
-            List<AccountDTO> data = accountDAO.getAccounts(offset, pageSize, email, userName, startDob, endDob, sort);
+            List<AccountDTO> data = accountDAO.getAccounts(offset, pageSize, email, userName, startDob, endDob, sort,
+                    accStatus);
 
             // Đếm tổng số bản ghi theo điều kiện tìm kiếm
-            long total = accountDAO.countAccountsWithConditions(email, userName, startDob, endDob).size();
+            long total = accountDAO.countAccountsWithConditions(email, userName, startDob, endDob, accStatus)
+                    .size();
 
             int pages = (pageSize == 0) ? 0 : (int) Math.ceil((double) total / pageSize);
 

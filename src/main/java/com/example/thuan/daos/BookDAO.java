@@ -40,7 +40,8 @@ public interface BookDAO {
                         String sort,
                         BigDecimal minPrice,
                         BigDecimal maxPrice,
-                        String mainText);
+                        String mainText,
+                        boolean homePage);
 
         long countBooksWithConditions(String bookTitle,
                         String author,

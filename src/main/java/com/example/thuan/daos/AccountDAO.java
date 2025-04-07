@@ -31,9 +31,10 @@ public interface AccountDAO {
     public AccountDTO findByEmail(String email);
 
     public List<AccountDTO> getAccounts(int offset, int pageSize, String email, String userName, Date startDob,
-            Date endDob, String sort);
+            Date endDob, String sort, Integer accStatus);
 
-    public List<AccountDTO> countAccountsWithConditions(String email, String userName, Date startDob, Date endDob);
+    public List<AccountDTO> countAccountsWithConditions(String email, String userName, Date startDob, Date endDob,
+            Integer accStatus);
 
     AccountDTO updateUser(UpdateUserRequest updateRequest);
 

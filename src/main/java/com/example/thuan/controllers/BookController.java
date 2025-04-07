@@ -77,7 +77,8 @@ public class BookController {
             @RequestParam(name = "mainText", required = false) String mainText,
             @RequestParam(name = "current", defaultValue = "1") int current,
             @RequestParam(name = "pageSize", defaultValue = "5") int pageSize,
-            @RequestParam(name = "sort", required = false) String sort) {
+            @RequestParam(name = "sort", required = false) String sort,
+            @RequestParam(name = "homePage", required = false, defaultValue = "false") boolean homePage) {
 
         try {
             // ✅ Chuyển categoryIds từ String => List<Integer>
@@ -115,9 +116,14 @@ public class BookController {
 
             int offset = (current - 1) * pageSize;
 
+            // Nếu là trang chủ, ta chỉ lấy sách có status=1
+            if (homePage) {
+                bookStatus = 1; // Chỉ hiển thị sách có status=1
+            }
+
             // Gọi DAO với các tham số tìm kiếm
             List<BookDTO> data = bookDAO.getBooksWithConditions(offset, pageSize, bookTitle, author, translator,
-                    publicationYear, isbn, bookStatus, categoryIdList, orderBy, minPrice, maxPrice, mainText);
+                    publicationYear, isbn, bookStatus, categoryIdList, orderBy, minPrice, maxPrice, mainText, homePage);
 
             // Khởi tạo các quan hệ lazy loading
             data.forEach(book -> {

@@ -168,15 +168,26 @@ public class AccountDAOImpl implements AccountDAO {
             accountDTO.setRole(1);
             accountDTO.setPassword(password.encode(accountDTO.getPassword()));
 
-            // Kiểm tra xem username hoặc email đã tồn tại
-            String checkQuery = "SELECT COUNT(*) FROM AccountDTO a WHERE a.username = :username OR a.email = :email";
-            Long count = entityManager.createQuery(checkQuery, Long.class)
+            String checkQuery1 = "SELECT COUNT(*) FROM AccountDTO a WHERE a.username = :username";
+            Long count1 = entityManager.createQuery(checkQuery1, Long.class)
                     .setParameter("username", accountDTO.getUsername())
+                    .getSingleResult();
+
+            String checkQuery2 = "SELECT COUNT(*) FROM AccountDTO a WHERE a.email = :email";
+            Long count2 = entityManager.createQuery(checkQuery2, Long.class)
                     .setParameter("email", accountDTO.getEmail())
                     .getSingleResult();
 
-            if (count > 0) {
-                throw new IllegalArgumentException("Username or Email already exists!");
+            if (count1 != 0 && count2 != 0) {
+                throw new IllegalArgumentException("Username and Email already exists!");
+            }
+
+            if (count1 > 0 && count2 == 0) {
+                throw new IllegalArgumentException("Username already exists!");
+            }
+
+            if (count1 == 0 && count2 > 0) {
+                throw new IllegalArgumentException("Email already exists!");
             }
 
             // Tạo và lưu OTP vào DB
@@ -269,7 +280,7 @@ public class AccountDAOImpl implements AccountDAO {
 
     @Override
     public List<AccountDTO> getAccounts(int offset, int pageSize, String email, String userName, Date startDob,
-            Date endDob, String sort) {
+            Date endDob, String sort, Integer accStatus) {
 
         try {
 
@@ -297,6 +308,12 @@ public class AccountDAOImpl implements AccountDAO {
             if (endDob != null) {
                 jpql.append("AND a.dob <= :endDob ");
                 params.put("endDob", endDob);
+            }
+
+            // Thêm điều kiện accStatus
+            if (accStatus != null) {
+                jpql.append("AND a.accStatus = :accStatus ");
+                params.put("accStatus", accStatus);
             }
 
             // Xử lý sắp xếp
@@ -330,7 +347,8 @@ public class AccountDAOImpl implements AccountDAO {
     }
 
     @Override
-    public List<AccountDTO> countAccountsWithConditions(String email, String userName, Date startDob, Date endDob) {
+    public List<AccountDTO> countAccountsWithConditions(String email, String userName, Date startDob, Date endDob,
+            Integer accStatus) {
 
         try {
 
@@ -360,6 +378,12 @@ public class AccountDAOImpl implements AccountDAO {
                 params.put("endDob", endDob);
             }
 
+            // Thêm điều kiện accStatus
+            if (accStatus != null) {
+                jpql.append("AND a.accStatus = :accStatus ");
+                params.put("accStatus", accStatus);
+            }
+
             // Tạo query
             TypedQuery<AccountDTO> query = entityManager.createQuery(jpql.toString(), AccountDTO.class);
 
@@ -374,6 +398,29 @@ public class AccountDAOImpl implements AccountDAO {
         }
     }
 
+    // @Transactional
+    // @Override
+    // public boolean deleteUserByUsername(String username) {
+    // try {
+    // AccountDTO account = findByUsername(username);
+    // if (account == null) {
+    // return false;
+    // }
+    // if (account.getRole() == Role.ROLE_ADMIN.getValue()) {
+    // return false;
+    // }
+
+    // entityManager.createQuery("DELETE FROM AccountDTO a WHERE a.username =
+    // :username")
+    // .setParameter("username", username)
+    // .executeUpdate();
+
+    // return true;
+    // } catch (Exception e) {
+    // throw new AppException(ErrorCode.INTERNAL_ERROR);
+    // }
+    // }
+
     @Transactional
     @Override
     public boolean deleteUserByUsername(String username) {
@@ -386,9 +433,9 @@ public class AccountDAOImpl implements AccountDAO {
                 return false;
             }
 
-            entityManager.createQuery("DELETE FROM AccountDTO a WHERE a.username = :username")
-                    .setParameter("username", username)
-                    .executeUpdate();
+            // Đặt trạng thái tài khoản thành không hoạt động (thay vì xóa)
+            account.setAccStatus(Status.INACTIVE_STATUS.getValue());
+            entityManager.merge(account);
 
             return true;
         } catch (Exception e) {

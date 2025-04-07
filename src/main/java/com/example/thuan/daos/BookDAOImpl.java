@@ -157,11 +157,12 @@ public class BookDAOImpl implements BookDAO {
             String sort,
             BigDecimal minPrice,
             BigDecimal maxPrice,
-            String mainText) {
+            String mainText,
+            boolean homePage) {
 
         // Bước 1: Lấy danh sách ID với điều kiện và phân trang
         List<Integer> bookIds = getFilteredBookIds(offset, pageSize, bookTitle, author, translator,
-                publicationYear, isbn, bookStatus, categoryIds, sort, minPrice, maxPrice, mainText);
+                publicationYear, isbn, bookStatus, categoryIds, sort, minPrice, maxPrice, mainText, homePage);
 
         // Bước 2: Fetch entity theo danh sách ID
         if (!bookIds.isEmpty()) {
@@ -182,7 +183,8 @@ public class BookDAOImpl implements BookDAO {
             String sort,
             BigDecimal minPrice,
             BigDecimal maxPrice,
-            String mainText) {
+            String mainText,
+            boolean homePage) {
 
         StringBuilder queryStr = new StringBuilder();
 
@@ -202,7 +204,7 @@ public class BookDAOImpl implements BookDAO {
 
         // Thêm các điều kiện lọc
         addConditions(queryStr, bookTitle, author, translator, publicationYear, isbn, bookStatus, categoryIds, minPrice,
-                maxPrice, mainText);
+                maxPrice, mainText, homePage);
 
         // Xử lý sắp xếp
         if ("sold ASC".equals(sort)) {
@@ -275,7 +277,8 @@ public class BookDAOImpl implements BookDAO {
             List<Integer> categoryIds,
             BigDecimal minPrice, // Thêm tham số
             BigDecimal maxPrice,
-            String mainText) {
+            String mainText,
+            boolean homePage) {
         if (bookTitle != null && !bookTitle.isEmpty()) {
             queryStr.append(" AND LOWER(b.bookTitle) LIKE LOWER(:bookTitle)");
         }
@@ -305,6 +308,9 @@ public class BookDAOImpl implements BookDAO {
         }
         if (mainText != null && !mainText.isEmpty()) {
             queryStr.append(" AND LOWER(b.bookTitle) LIKE LOWER(:mainText)");
+        }
+        if (homePage) {
+            queryStr.append(" AND b.bookQuantity > 0");
         }
     }
 
