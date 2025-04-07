@@ -275,4 +275,38 @@ public class PromotionController {
             return BaseResponse.error("Lỗi khi kiểm tra mã khuyến mãi: " + e.getMessage(), 500, e.getMessage());
         }
     }
+
+    @GetMapping("/active")
+    public ResponseEntity<Map<String, Object>> getActivePromotions() {
+        try {
+            List<PromotionDTO> promotions = promotionDAO.findActivePromotions();
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "statusCode", 200,
+                    "message", "Active promotions retrieved successfully",
+                    "data", promotions));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "success", false,
+                    "statusCode", 500,
+                    "message", "Failed to retrieve active promotions: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/used/{username}")
+    public ResponseEntity<Map<String, Object>> getPromotionsUsedByUser(@PathVariable("username") String username) {
+        try {
+            List<PromotionDTO> promotions = promotionDAO.findPromotionsUsedByUser(username);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "statusCode", 200,
+                    "message", "User's used promotions retrieved successfully",
+                    "data", promotions));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "success", false,
+                    "statusCode", 500,
+                    "message", "Failed to retrieve user's used promotions: " + e.getMessage()));
+        }
+    }
 }

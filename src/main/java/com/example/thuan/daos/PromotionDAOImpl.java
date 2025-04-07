@@ -249,4 +249,17 @@ public class PromotionDAOImpl implements PromotionDAO {
                 .setParameter("currentDate", currentDate)
                 .getResultList();
     }
+
+    @Override
+    public List<PromotionDTO> findPromotionsUsedByUser(String username) {
+        // Tìm các khuyến mãi đã được sử dụng bởi người dùng có username cụ thể
+        String jpql = "SELECT DISTINCT p FROM PromotionDTO p " +
+                "JOIN p.orderList o " +
+                "WHERE o.username.username = :username";
+
+        TypedQuery<PromotionDTO> query = entityManager.createQuery(jpql, PromotionDTO.class);
+        query.setParameter("username", username);
+
+        return query.getResultList();
+    }
 }

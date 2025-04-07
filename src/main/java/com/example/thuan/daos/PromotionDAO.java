@@ -26,4 +26,7 @@ public interface PromotionDAO {
     boolean isProCodeExists(String proCode);
 
     List<PromotionDTO> findActivePromotions();
+
+    // Phương thức để tìm các khuyến mãi đã được sử dụng bởi một người dùng cụ thể
+    List<PromotionDTO> findPromotionsUsedByUser(String username);
 }
