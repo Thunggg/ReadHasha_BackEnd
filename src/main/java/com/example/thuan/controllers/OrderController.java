@@ -307,4 +307,56 @@ public class OrderController {
             return BaseResponse.error("Lỗi khi lấy thông tin đơn hàng: " + e.getMessage(), 500, null);
         }
     }
+
+    // Thêm endpoint để cập nhật trạng thái đơn hàng
+    @PutMapping("/update-status/{orderId}")
+    public ResponseEntity<Map<String, Object>> updateOrderStatus(
+            @PathVariable("orderId") int orderId,
+            @RequestBody Map<String, Integer> requestBody) {
+        try {
+            int status = requestBody.get("status");
+            OrderDTO updatedOrder = orderDAO.updateOrderStatus(orderId, status);
+
+            // Chuẩn bị thông tin trả về
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("statusCode", 200);
+            response.put("message", "Cập nhật trạng thái đơn hàng thành công");
+            response.put("data", updatedOrder);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("statusCode", 400);
+            response.put("message", "Lỗi khi cập nhật trạng thái đơn hàng: " + e.getMessage());
+
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+
+    // Thêm endpoint để hủy đơn hàng và khôi phục số lượng sách
+    @PostMapping("/{orderId}/cancel-and-restore")
+    public ResponseEntity<Map<String, Object>> cancelOrderAndRestoreStock(
+            @PathVariable("orderId") int orderId) {
+        try {
+            OrderDTO cancelledOrder = orderDAO.cancelOrderAndRestoreStock(orderId);
+
+            // Chuẩn bị thông tin trả về
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("statusCode", 200);
+            response.put("message", "Đơn hàng đã được hủy và số lượng sách đã được khôi phục");
+            response.put("data", cancelledOrder);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("statusCode", 400);
+            response.put("message", "Lỗi khi hủy đơn hàng: " + e.getMessage());
+
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
 }

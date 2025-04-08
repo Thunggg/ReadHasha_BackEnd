@@ -31,4 +31,8 @@ public interface OrderDAO {
     // Phương thức để lấy chi tiết đơn hàng bao gồm thông tin khách hàng và mã
     // khuyến mãi
     OrderDTO getOrderDetails(int orderId) throws Exception;
+
+    OrderDTO updateOrderStatus(int orderId, int status) throws Exception;
+
+    OrderDTO cancelOrderAndRestoreStock(int orderId) throws Exception;
 }

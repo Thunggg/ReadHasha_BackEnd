@@ -277,4 +277,79 @@ public class OrderDAOImpl implements OrderDAO {
 
         return order;
     }
+
+    @Override
+    @Transactional
+    public OrderDTO updateOrderStatus(int orderId, int status) throws Exception {
+        // Kiểm tra status hợp lệ (0: hủy, 1: chờ xác nhận, 2: đã xác nhận, 3: đã giao
+        // hàng)
+        if (status < 0 || status > 3) {
+            throw new Exception("Trạng thái đơn hàng không hợp lệ. Vui lòng chọn giá trị từ 0-3");
+        }
+
+        // Tìm đơn hàng cần cập nhật
+        OrderDTO order = this.find(orderId);
+        if (order == null) {
+            throw new Exception("Không tìm thấy đơn hàng với ID: " + orderId);
+        }
+
+        // Nếu đơn hàng đã bị hủy và cố gắng cập nhật trạng thái khác
+        if (order.getOrderStatus() == 0 && status != 0) {
+            throw new Exception("Không thể cập nhật trạng thái cho đơn hàng đã bị hủy");
+        }
+
+        // Cập nhật trạng thái đơn hàng
+        order.setOrderStatus(status);
+        entityManager.merge(order);
+
+        return order;
+    }
+
+    @Override
+    @Transactional
+    public OrderDTO cancelOrderAndRestoreStock(int orderId) throws Exception {
+        // Tìm đơn hàng cần hủy
+        OrderDTO order = entityManager.createQuery(
+                "SELECT o FROM OrderDTO o " +
+                        "LEFT JOIN FETCH o.username " +
+                        "LEFT JOIN FETCH o.proID " +
+                        "LEFT JOIN FETCH o.orderDetailList od " +
+                        "LEFT JOIN FETCH od.bookID " +
+                        "WHERE o.orderID = :orderId",
+                OrderDTO.class)
+                .setParameter("orderId", orderId)
+                .getSingleResult();
+
+        if (order == null) {
+            throw new Exception("Không tìm thấy đơn hàng với ID: " + orderId);
+        }
+
+        // Kiểm tra nếu đơn hàng đã bị hủy trước đó
+        if (order.getOrderStatus() == 0) {
+            throw new Exception("Đơn hàng này đã bị hủy trước đó");
+        }
+
+        // Kiểm tra nếu đơn hàng đã hoàn thành (đã giao hàng)
+        if (order.getOrderStatus() == 3) {
+            throw new Exception("Không thể hủy đơn hàng đã hoàn thành");
+        }
+
+        // Khôi phục lại số lượng sách
+        if (order.getOrderDetailList() != null) {
+            order.getOrderDetailList().forEach(orderDetail -> {
+                // Lấy thông tin sách và khôi phục số lượng
+                if (orderDetail.getBookID() != null) {
+                    orderDetail.getBookID().setBookQuantity(
+                            orderDetail.getBookID().getBookQuantity() + orderDetail.getQuantity());
+                    entityManager.merge(orderDetail.getBookID());
+                }
+            });
+        }
+
+        // Cập nhật trạng thái đơn hàng thành đã hủy (status = 0)
+        order.setOrderStatus(0);
+        entityManager.merge(order);
+
+        return order;
+    }
 }

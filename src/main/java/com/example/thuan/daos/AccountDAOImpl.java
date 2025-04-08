@@ -452,9 +452,9 @@ public class AccountDAOImpl implements AccountDAO {
             throw new AppException(ErrorCode.USER_NOT_FOUND);
         }
 
-        if (account.getRole() == Role.ROLE_ADMIN.getValue()) {
-            throw new AppException(ErrorCode.USER_NOT_UPDATE);
-        }
+        // if (account.getRole() == Role.ROLE_ADMIN.getValue()) {
+        // throw new AppException(ErrorCode.USER_NOT_UPDATE);
+        // }
 
         // 2. Cập nhật các trường được phép thay đổi
         if (updateRequest.getFirstName() != null) {
